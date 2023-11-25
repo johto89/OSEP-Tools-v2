@@ -1,0 +1,7 @@
+\\192.168.45.160\smbShare\OSEP-Tools-v2\Misc\Fileless_Lateral_Movement\bin\Debug\Fileless Lateral Movement.exe.config
+\\192.168.45.160\smbShare\OSEP-Tools-v2\Misc\Fileless_Lateral_Movement\bin\Debug\Fileless Lateral Movement.exe
+\\192.168.45.160\smbShare\OSEP-Tools-v2\Misc\Fileless_Lateral_Movement\bin\Debug\Fileless Lateral Movement.pdb
+\\192.168.45.160\smbShare\OSEP-Tools-v2\Misc\Fileless_Lateral_Movement\obj\Debug\Fileless Lateral Movement.csprojAssemblyReference.cache
+\\192.168.45.160\smbShare\OSEP-Tools-v2\Misc\Fileless_Lateral_Movement\obj\Debug\Fileless Lateral Movement.csproj.CoreCompileInputs.cache
+\\192.168.45.160\smbShare\OSEP-Tools-v2\Misc\Fileless_Lateral_Movement\obj\Debug\Fileless Lateral Movement.exe
+\\192.168.45.160\smbShare\OSEP-Tools-v2\Misc\Fileless_Lateral_Movement\obj\Debug\Fileless Lateral Movement.pdb

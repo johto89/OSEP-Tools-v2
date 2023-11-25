@@ -1,0 +1,6 @@
+\\192.168.45.215\smbShare\OSEP-Tools-v2\Active_Directory\sql\bin\Debug\sql.exe.config
+\\192.168.45.215\smbShare\OSEP-Tools-v2\Active_Directory\sql\bin\Debug\sql.exe
+\\192.168.45.215\smbShare\OSEP-Tools-v2\Active_Directory\sql\bin\Debug\sql.pdb
+\\192.168.45.215\smbShare\OSEP-Tools-v2\Active_Directory\sql\obj\Debug\sql.csprojAssemblyReference.cache
+\\192.168.45.215\smbShare\OSEP-Tools-v2\Active_Directory\sql\obj\Debug\sql.exe
+\\192.168.45.215\smbShare\OSEP-Tools-v2\Active_Directory\sql\obj\Debug\sql.pdb
