@@ -56,7 +56,6 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 - Latest patch defender (Oct 2021) seems to have an "AND" based signature for `AutoOpen()`.  It can be used in macros for benign purposes but as soon as API calls are included (or at least things used in shellcode runners), it flags signature based detection.
 - `RtlMoveMemory` API call is signatured.  Use `RtlFillMemory` instead. 
 - Resolve `Amsi.dll` and the function calls within it either dynamically or heavily obfuscated when you go to patch it.
-- Starting in Word 2019 the program is 64 bit by default. This means Word 2019,O365,2021 are all good candidates for Injection because Orgs/individuals would have to go out of their way to have downloaded the 32 bit one.
 - Meterpreter shells after using Migrate seem to get caught by defender sometimes... Doesn't seem to be the case for straight up injection payloads.
 
 ### RESOURCES
@@ -74,7 +73,10 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 - Patch the `x64_met_staged_reverseHttps*` payloads in `/bins` bc they don't work. The tcp do.
 - Compile all projects to single directory for ease of access
 - Integrate more of OSEP-Code-Snippets
-- Update `UACBypass.ps1` 
+- Update `UACBypass.ps1`
+
+## Changelog
+- 11/26/2023 - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process.
 
 # Disclaimer
 > @Octoberfest7
