@@ -2,7 +2,7 @@
 
 A marriage between [Octoberfest/OSEP-Tools](https://github.com/Octoberfest7/OSEP-Tools) and [chvancooten/OSEP-Code-Snippets](https://github.com/chvancooten/OSEP-Code-Snippets). Thanks to those guys for putting in the real work.
 
-I made some changes to the repos obviously. The easiest way to see what I've done is check the commits. Basically what I did was just rewriting the documentation for the tools, and fix some small things here and there. I kept everything from OSEP-Tools, but only the projects that I deemed useful from OSEP-Code-Snippets.
+I made some changes to the repos obviously. The easiest way to see what I've done is check the commits and my [Changelog](#changelog) section below. Basically what I did was just rewriting the documentation for the tools, and fix some small things here and there. I kept everything from OSEP-Tools, but only the projects that I deemed useful from OSEP-Code-Snippets.
 
 Below is a small table of contents, some notes, and then the disclaimer from the OG OSEP-Tools repo author.
 
@@ -78,7 +78,7 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 ## Changelog
 - [11/25/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/abf34fb4b0c761091ace1be6368c8bbdfcc3b2bb) - Initial commit; File structure changes, README updates/prettifying, repo merging
 - [11/26/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/76fed7aa2cf69408791aceeedb08edcc81898692) - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process.
-- [11/26/2023](TODO) - Updated `WordMacroInject.vbs` to enumerate 32-bit processes and inject into a process other than `WINWORD.exe`.
+- [11/26/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/f8758923045b5e6a49f3e97739f73c7cd5512c74) - Updated `WordMacroInject.vbs` to enumerate 32-bit processes and inject into a process other than `WINWORD.exe`.
 
 # Disclaimer
 > @Octoberfest7
