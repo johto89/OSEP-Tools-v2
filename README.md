@@ -76,7 +76,9 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 - Update `UACBypass.ps1`
 
 ## Changelog
-- 11/26/2023 - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process.
+- [11/25/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/abf34fb4b0c761091ace1be6368c8bbdfcc3b2bb) - Initial commit; File structure changes, README updates/prettifying, repo merging
+- [11/26/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/76fed7aa2cf69408791aceeedb08edcc81898692) - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process.
+- [11/26/2023](TODO) - Updated `WordMacroInject.vbs` to enumerate 32-bit processes and inject into a process other than `WINWORD.exe`.
 
 # Disclaimer
 > @Octoberfest7
