@@ -4,7 +4,7 @@ A marriage between [Octoberfest/OSEP-Tools](https://github.com/Octoberfest7/OSEP
 
 I made some changes to the repos obviously. The easiest way to see what I've done is check the commits and my [Changelog](#changelog) section below. Basically what I did was just rewriting the documentation for the tools, and fix some small things here and there. I kept everything from OSEP-Tools, but only the projects that I deemed useful from OSEP-Code-Snippets.
 
-Below is a small table of contents, some notes, and then the disclaimer from the OG OSEP-Tools repo author.
+Below is a small table of contents, some notes, my changelog, and then the disclaimer from the OG OSEP-Tools repo author.
 
 ## ToC
 
@@ -65,7 +65,6 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 
 ## To DOs
 
-- Integrate Injection runner with baseline runner so that injection is performed if x64 word is detected.
 - Implement dynamic AMSI search capability as seen here: https://secureyourit.co.uk/wp/2019/05/10/dynamic-microsoft-office-365-amsi-in-memory-bypass-using-vba/
 - Update `AV_Detection` scripts
     - Add in Discord scripts
