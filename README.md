@@ -67,7 +67,9 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 
 - Implement dynamic AMSI search capability as seen here: https://secureyourit.co.uk/wp/2019/05/10/dynamic-microsoft-office-365-amsi-in-memory-bypass-using-vba/
 - Update `AV_Detection` scripts
-    - Add in Discord scripts
+    - Add Defender Disabling option to `Get-AVProduct.ps1` using [pentest-everything](https://viperone.gitbook.io/pentest-everything/everything/everything-active-directory/defense-evasion/disable-defender) and my private notes as reference
+    - Add AppLocker Rules  disabling option to `Get-AppLockerRules.ps1`
+    - Add `DisableLSA` script using my private notes
 - Patch the `powerhollow.py`, `powerinject.py` AMSI context bypasses to not fail when there isn't Amsi on the box
 - Patch the `x64_met_staged_reverseHttps*` payloads in `/bins` bc they don't work. The tcp do.
 - Compile all projects to single directory for ease of access
@@ -75,9 +77,13 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 - Update `UACBypass.ps1`
 
 ## Changelog
-- [11/25/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/abf34fb4b0c761091ace1be6368c8bbdfcc3b2bb) - Initial commit; File structure changes, README updates/prettifying, repo merging
-- [11/26/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/76fed7aa2cf69408791aceeedb08edcc81898692) - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process.
-- [11/26/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/f8758923045b5e6a49f3e97739f73c7cd5512c74) - Updated `WordMacroInject.vbs` to enumerate 32-bit processes and inject into a process other than `WINWORD.exe`.
+- [11/25/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/abf34fb4b0c761091ace1be6368c8bbdfcc3b2bb)
+    - Initial commit; File structure changes, README updates/prettifying, repo merging
+- 11/26/2023
+    - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process
+    - Updated `WordMacroInject.vbs` to enumerate 32-bit processes and inject into a process other than `WINWORD.exe`
+    - Updated `Get-AVProduct.ps1` to better enumerate security products
+    - Added `Misc/Autos` directory to automate common processes; Added `Create-Admin.ps1`
 
 # Disclaimer
 > @Octoberfest7
