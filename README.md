@@ -16,7 +16,7 @@ Below is a small table of contents, some notes, my changelog, and then the discl
 | Loaders_PEs | Tools that aid in loading EXEs (PEs) into memory, *from disk*, and executing | `nonDN2J.hta` |
 | Loaders_Shellcode | Tools that aid in loading executable shellcode into memory from a remote server and executing | `clhollow`, `clinject`, `D_invoke`, `powerhollow.py`, `powerinject.py` |
 | Macros | Tools that aid in executing shellcode either from memory or disk, from a word VBS Macro | `WordMacroRunner.vbs`, `WordMacroRunnerBasic.vbs`, `vbObfuscate.ps1`, `WordPsCradle.vbs`, `WordMacroInject.vbs` |
-| Misc | Tools aiding in misc things like AV enumeration, dumping LSASS memory, and RCE leveraging win32 API | `AV_Detection`, `Fileless_Lateral_Movement`, `MiniDump` |
+| Misc | Tools aiding in misc things like AV enumeration, automation, dumping LSASS memory, and RCE leveraging win32 API | `AV_Stuff`, `Autos`, `Fileless_Lateral_Movement`, `MiniDump` |
 | Privilege_Escalation | Tools that aid in Windows PE | `PrinSpoofer.Net`, `shakeitoff`, `UACBypass.ps1` |
 
 
@@ -66,8 +66,7 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 ## To DOs
 
 - Implement dynamic AMSI search capability as seen here: https://secureyourit.co.uk/wp/2019/05/10/dynamic-microsoft-office-365-amsi-in-memory-bypass-using-vba/
-- Update `AV_Detection` scripts
-    - Add Defender Disabling option to `Get-AVProduct.ps1` using [pentest-everything](https://viperone.gitbook.io/pentest-everything/everything/everything-active-directory/defense-evasion/disable-defender) and my private notes as reference
+- Update `AV_Stuff` scripts
     - Add AppLocker Rules  disabling option to `Get-AppLockerRules.ps1`
     - Add `DisableLSA` script using my private notes
 - Patch the `powerhollow.py`, `powerinject.py` AMSI context bypasses to not fail when there isn't Amsi on the box
@@ -82,8 +81,12 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 - 11/26/2023
     - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process
     - Updated `WordMacroInject.vbs` to enumerate 32-bit processes and inject into a process other than `WINWORD.exe`
-    - Updated `Get-AVProduct.ps1` to better enumerate security products
+    - Updated `Disable-AVProduct.ps1` to better enumerate security products
     - Added `Misc/Autos` directory to automate common processes; Added `Create-Admin.ps1`
+- 12/01/2023
+    - Updated `Disable-AVProduct.ps1` to actually disable windows defender (using provided cmdlets/registry keys, nothing crazy)
+    - More thorough minifying of `Disable-AVProduct.min.ps1`
+    
 
 # Disclaimer
 > @Octoberfest7
