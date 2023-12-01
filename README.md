@@ -69,8 +69,8 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 - Update `AV_Stuff` scripts
     - Add AppLocker Rules  disabling option to `Get-AppLockerRules.ps1`
     - Add `DisableLSA` script using my private notes
-- Patch the `powerhollow.py`, `powerinject.py` AMSI context bypasses to not fail when there isn't Amsi on the box
 - Patch the `x64_met_staged_reverseHttps*` payloads in `/bins` bc they don't work. The tcp do.
+    - Notes in the Loaders_Shellcode readme
 - Compile all projects to single directory for ease of access
 - Integrate more of OSEP-Code-Snippets
 - Update `UACBypass.ps1`
@@ -86,6 +86,8 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 - 12/01/2023
     - Updated `Disable-AVProduct.ps1` to actually disable windows defender (using provided cmdlets/registry keys, nothing crazy)
     - More thorough minifying of `Disable-AVProduct.min.ps1`
+    - Fix `powerhollow.py` and `powerinject.py` payloads to not fail if no Amsi found
+    - Add input checks to ensure hollowing targets are valid
     
 
 # Disclaimer

