@@ -4,6 +4,9 @@
 
 | Application | Output | Notes |
 | ----------- | ------ | ----- |
+| `D_invoke/` | EXE | C# project that produces [D/invoke](https://github.com/TheWover/DInvoke) payloads |
+| `clinject/` | EXE | C# project that has been modified to accept command line args for an **injected** reverse shell process |
+| `clhollow/` | EXE | C# project that has been modified to accept command line args for an **hollowed** reverse shell process |
 | `powershell/Powerinject.py` | PS | Python3 script to generate .PS1 payloads that perform process injection. |
 | `powershell/Powerhollow.py` | PS | Python3 script to generate .PS1 payloads that perform process hollowing with PPID spoofing |
 | `formatters/port_ipeggs.py` | TXT | Python3 script to format C# shellcode output by msfvenom into proper format for use with `Powerinject` & `Powerhollow` |
@@ -11,7 +14,6 @@
 | `bins/x64_met_staged_reversetcp_hollow.exe` | N/A | Command line args: IP PORT PROCESS_TO_HOLLOW(c:\\windows\\system32\\svchost.exe) PPID_SPOOF(explorer) |
 | `bins/x64_met_staged_reversehttps_inject.exe` | N/A | Command line args: IP PORT PROCESS_TO_INJECT(explorer) |
 | `bins/x64_met_staged_reversehttps_hollow.exe` | N/A | Command line args: IP PORT PROCESS_TO_HOLLOW(c:\\windows\\system32\\svchost.exe) PPID_SPOOF(explorer)  |
-| `D_invoke/` | EXE | C# project that produces [D/invoke](https://github.com/TheWover/DInvoke) payloads |
 | `formatters/formatshellcode.py` | TXT | Python3 script to format C# shellcode output by msfvenom into proper format for use with `Builder.exe` |
 
 ## [clinject](./clinject/Program.cs) and [clhollow](./clhollow/Program.cs)
