@@ -71,7 +71,6 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
     - Add `DisableLSA` script using my private notes
 - Patch the `x64_met_staged_reverseHttps*` payloads in `/bins` bc they don't work. The tcp do.
     - Notes in the Loaders_Shellcode readme
-- Compile all projects to single directory for ease of access
 - Integrate more of OSEP-Code-Snippets
 - Update `UACBypass.ps1`
 
@@ -88,7 +87,8 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
     - More thorough minifying of `Disable-AVProduct.min.ps1`
     - Fix `powerhollow.py` and `powerinject.py` payloads to not fail if no Amsi found
     - Add input checks to ensure hollowing targets are valid
-    
+- 12/03/2023
+    - Compile all projects to single directory for ease of access
 
 # Disclaimer
 > @Octoberfest7
