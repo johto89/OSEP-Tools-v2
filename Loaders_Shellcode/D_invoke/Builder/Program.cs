@@ -1541,7 +1541,7 @@ NtProtectVirtualMemory.DynamicInvoke(pi.hProcess, addressOfEntryPoint, bufferlen
             text = text.Replace("<PARENT>", parent_process);
             File.WriteAllText(outputfile, text); //Write out to Program.cs which is called in .csproj
 
-            string buildcommand = " /C \"c:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" " + buildfile + " /p:Configuration=Release /p:Platform=" + architecture + " /t:Clean,Build /p:OutputPath=" + cd;
+            string buildcommand = " /K \"c:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" " + buildfile + " /p:Configuration=Release /p:Platform=" + architecture + " /t:Clean,Build /p:OutputPath=" + cd;
             //Console.WriteLine(buildcommand);
             System.Diagnostics.Process.Start("CMD.exe", buildcommand);
             Sleep(3000);

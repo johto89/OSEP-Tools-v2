@@ -5,3 +5,10 @@ C:\Users\User\source\repos\D_invoke\Builder\obj\x64\Release\Builder.csproj.CoreC
 C:\Users\User\source\repos\D_invoke\Builder\obj\x64\Release\Builder.exe
 C:\Users\User\source\repos\D_invoke\Builder\obj\x64\Release\Builder.pdb
 C:\Users\User\source\repos\D_invoke\Builder\obj\x64\Release\Builder.csproj.AssemblyReference.cache
+\\192.168.45.191\smbShare\OSEP-Tools-v2\Loaders_Shellcode\D_invoke\Builder\bin\x64\Release\Builder.exe.config
+\\192.168.45.191\smbShare\OSEP-Tools-v2\Loaders_Shellcode\D_invoke\Builder\bin\x64\Release\Builder.exe
+\\192.168.45.191\smbShare\OSEP-Tools-v2\Loaders_Shellcode\D_invoke\Builder\bin\x64\Release\Builder.pdb
+\\192.168.45.191\smbShare\OSEP-Tools-v2\Loaders_Shellcode\D_invoke\Builder\obj\x64\Release\Builder.csprojAssemblyReference.cache
+\\192.168.45.191\smbShare\OSEP-Tools-v2\Loaders_Shellcode\D_invoke\Builder\obj\x64\Release\Builder.csproj.CoreCompileInputs.cache
+\\192.168.45.191\smbShare\OSEP-Tools-v2\Loaders_Shellcode\D_invoke\Builder\obj\x64\Release\Builder.exe
+\\192.168.45.191\smbShare\OSEP-Tools-v2\Loaders_Shellcode\D_invoke\Builder\obj\x64\Release\Builder.pdb
