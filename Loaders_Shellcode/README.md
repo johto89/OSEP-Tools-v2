@@ -46,6 +46,8 @@ These python scripts call `msfvenom` to generate shellcode, AES encrypt it, and 
 
 `Powerinject.py` payloads succeed here; however I was unable to find a way to define the structs necessary for doing PPID spoofing with Process hollowing, so **add-type IS called in the `Powerhollow.py`** *.PS1* payloads, however this is only done for the necessesary structs and the `createproces()` Win32API. All other required API's are resolved dynamically.
 
+In addition, `powerinject.py` payloads now detect if they are being run in a 32-bit PS context, and auto download-and-execute themselves in a 64-bit process. This is useful if your stager is ran from a 32-bit process (Word Macros), resulting in a 32-bit PS process.
+
 Run the appropriate python script for the kind of payload you want to use and then place the produced files in your webserver directory and use the supplied PS one liner in order to call them.
 
 ## [D_invoke](./D_invoke/Builder/Program.cs)

