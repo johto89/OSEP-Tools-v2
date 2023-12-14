@@ -10,6 +10,7 @@
 | `powershell/Powerinject.py` | PS | Python3 script to generate .PS1 payloads that perform process injection. |
 | `powershell/Powerhollow.py` | PS | Python3 script to generate .PS1 payloads that perform process hollowing with PPID spoofing |
 | `formatters/port_ipeggs.py` | TXT | Python3 script to format C# shellcode output by msfvenom into proper format for use with `Powerinject` & `Powerhollow` |
+| `formatters/bin_to_vbappArray.py` | TXT | Python3 script to format raw `.bin` shellcode files into proper format for use in VBA Macros |
 | `bins/x64_met_staged_reversetcp_inject.exe` | N/A | Command line args: IP PORT PROCESS_TO_INJECT(explorer) |
 | `bins/x64_met_staged_reversetcp_hollow.exe` | N/A | Command line args: IP PORT PROCESS_TO_HOLLOW(c:\\windows\\system32\\svchost.exe) PPID_SPOOF(explorer) |
 | `bins/x64_met_staged_reversehttps_inject.exe` | N/A | Command line args: IP PORT PROCESS_TO_INJECT(explorer) |
