@@ -89,6 +89,11 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
     - Add input checks to ensure hollowing targets are valid
 - 12/03/2023
     - Compile all projects to single directory for ease of access
+- 12/13/2023
+    - Fix D_invoke dependency issue. Modify underlying build command to allow build error debugging
+    - Add reverse shell functionality to `altbypass`
+    - Add new formatter `bin_to_vbappArray.py`
+    - Update `powerinject.py` payloads to always execute in a 64-bit process
 
 # Disclaimer
 > @Octoberfest7

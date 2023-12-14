@@ -174,7 +174,7 @@ Sub patch(StrFile As String, Is64 As Boolean)
     Else
         off = 256
     End If
-
+    ' WARNING: This often breaks here. If somethings not working, remove this second patch
     Func_addr = GetPrAddr(lib, "Am" & Chr(115) & Chr(105) & "U" & Chr(97) & "c" & "Init" & Chr(105) & Chr(97) & "lize") - off
     temp = VirtPro(ByVal Func_addr, 32, 64, old)
     patched ByVal (Func_addr), 1, ByVal ("&H" & "90")
