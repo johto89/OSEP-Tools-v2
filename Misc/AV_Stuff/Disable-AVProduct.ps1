@@ -317,6 +317,10 @@ $AV
 if ($AV.ProductExecutable -Like "*windowsdefender://*"){
     Disable-AV
 }
+elseif($AV.Count -eq 0){
+    Write-Host "[-] No AV provided. Assumming Windows Defender."
+    Disable-AV
+} 
 else{
     Write-Host "Unsupported PSP '$($AV.ProductExecutable)'. Disabling AV only supported with Windows Defender"
 }
