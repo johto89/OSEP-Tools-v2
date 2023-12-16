@@ -75,7 +75,7 @@ if __name__ == '__main__':
 	else:
 		payloadfile = "payload.txt"
 	if args.execution_method == "ps":
-		remhistory = "$file = \"$Env:APPDATA\Microsoft\Windows\Powershell\PSReadLine\ConsoleHost_history.txt\";Get-Content $file | Measure-Object -Line;$a = (Get-Content $file | Measure-Object);(Get-Content $file) | ? {($a.count)-notcontains $_.ReadCount} | Set-Content $file"
+		remhistory = "Remove-Item \"$Env:APPDATA\Microsoft\Windows\Powershell\PSReadLine\ConsoleHost_history.txt\" -ErrorAction SilentlyContinue"
 	elif args.execution_method == "cmd":
 		remhistory = ""
 		stager = True

