@@ -94,6 +94,8 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
     - Add reverse shell functionality to `altbypass`
     - Add new formatter `bin_to_vbappArray.py`
     - Update `powerinject.py` payloads to always execute in a 64-bit process
+- 01/06/2023
+    - Update `powerinject.py` target injection process identification method. Add `any` target option.
 
 # Disclaimer
 > @Octoberfest7

