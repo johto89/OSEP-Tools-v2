@@ -14,7 +14,7 @@ Below is a small table of contents, some notes, my changelog, and then the discl
 | AppLocker_Bypass | Tools that may aid in bypassing AppLocker | `altBypass`, `psBypass` |
 | Linux | Tools that aid in executing shells on a Linux box | `Linux_Shellcode_Encoders`, `Linux_Shellcode_Loaders` |
 | Loaders_PEs | Tools that aid in loading EXEs (PEs) into memory, *from disk*, and executing | `nonDN2J.hta` |
-| Loaders_Shellcode | Tools that aid in loading executable shellcode into memory from a remote server and executing | `clhollow`, `clinject`, `D_invoke`, `powerhollow.py`, `powerinject.py` |
+| Loaders_Shellcode | Tools that aid in loading executable shellcode into memory from a remote server and executing | `clrunner`, `clhollow`, `clinject`, `D_invoke`, `powerhollow.py`, `powerinject.py` |
 | Macros | Tools that aid in executing shellcode either from memory or disk, from a word VBS Macro | `WordMacroRunner.vbs`, `WordMacroRunnerBasic.vbs`, `vbObfuscate.ps1`, `WordPsCradle.vbs`, `WordMacroInject.vbs` |
 | Misc | Tools aiding in misc things like AV enumeration, automation, dumping LSASS memory, and RCE leveraging win32 API | `AV_Stuff`, `Autos`, `Fileless_Lateral_Movement`, `MiniDump` |
 | Privilege_Escalation | Tools that aid in Windows PE | `PrinSpoofer.Net`, `shakeitoff`, `UACBypass.ps1` |
@@ -96,6 +96,7 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
     - Update `powerinject.py` payloads to always execute in a 64-bit process
 - 01/06/2023
     - Update `powerinject.py` target injection process identification method. Add `any` target option.
+    - Add `clrunner` payload. Add InstallUtil bypass to all `cl*` Shellcode Loaders.
 
 # Disclaimer
 > @Octoberfest7

