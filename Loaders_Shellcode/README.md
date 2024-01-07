@@ -18,7 +18,7 @@
 | `bins/x64_met_staged_reversehttps_hollow.exe` | N/A | Command line args: IP PORT PROCESS_TO_HOLLOW(c:\\windows\\system32\\svchost.exe) PPID_SPOOF(explorer)  |
 | `formatters/formatshellcode.py` | TXT | Python3 script to format C# shellcode output by msfvenom into proper format for use with `Builder.exe` |
 
-## [clinject](./clinject/Program.cs) and [clhollow](./clhollow/Program.cs)
+## [clrunner](./clrunner/clrunner.cs), [clinject](./clinject/clinject.cs) and [clhollow](./clhollow/clhollow.cs)
 
 These are C# projects that have been modified in order to accept command line `Lhost`, `Lport`, and processes for targeting.  This allows a user to drop the payload on whatever target machine without worry of needing to re-roll shellcode if the attackers IP changes, or the payload needs to be pointed at a different machine in order to hit a tunnel and egress the network.
 
