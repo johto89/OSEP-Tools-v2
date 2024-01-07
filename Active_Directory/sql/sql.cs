@@ -3,10 +3,6 @@ using System.Data.SqlClient;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using System.Security.Cryptography;
-using System.Globalization;
 using System.Diagnostics;
 
 namespace sql
@@ -1394,7 +1390,7 @@ namespace sql
                     }
                 }
             }
-            catch (Exception ex)
+            catch 
             {
             }
             return string.Empty;

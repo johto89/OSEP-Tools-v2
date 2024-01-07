@@ -62,7 +62,7 @@ Might have some bugs because of the minifying process. I've tested it a decent a
 Enumerate Applocker Rules. Very basic, will update in future.
 
 
-## `Fileless_Lateral_Movement`
+## `PSLessExec`
 
 Wipes Windows Defender signatures on the *remote host* and uses a `PSExec`-like method (except using an existing process) to achieve lateral movement. Takes arguments for the target, the target service, and the target binary to run. Note that a non-critical service should be chosen, such as `SensorService`.
 
@@ -74,4 +74,5 @@ Example: PSLessExec.exe appsrv01 SensorService notepad.exe
 ```
 
 ## `MiniDump`
+
 A simple binary to Dump LSASS to `C:\Windows\Tasks\lsass.dmp`. Also provided as a native PowerShell script.

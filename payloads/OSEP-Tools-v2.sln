@@ -13,11 +13,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clhollow", "..\Loaders_Shel
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clinject", "..\Loaders_Shellcode\clinject\clinject.csproj", "{2A515F49-2C07-4747-A5EF-E47516D17C05}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fileless Lateral Movement", "..\Misc\Fileless_Lateral_Movement\Fileless Lateral Movement.csproj", "{77F955C3-4910-49EA-9CD4-CBF5AD9C071A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSLessExec", "..\Misc\Fileless_Lateral_Movement\PSLessExec.csproj", "{77F955C3-4910-49EA-9CD4-CBF5AD9C071A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniDump", "..\Misc\MiniDump\MiniDump.csproj", "{595D5812-AA30-4EDE-95DA-8EDD7B8844BD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrintSpoofer", "..\Privilege_Escalation\PrintSpoofer.NET\PrintSpoofer.csproj", "{C91C8B29-82DF-49C0-986B-81182CF84E42}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clrunner", "..\Loaders_Shellcode\clrunner\clrunner.csproj", "{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -125,6 +127,18 @@ Global
 		{C91C8B29-82DF-49C0-986B-81182CF84E42}.Release|x64.Build.0 = Release|x64
 		{C91C8B29-82DF-49C0-986B-81182CF84E42}.Release|x86.ActiveCfg = Release|Any CPU
 		{C91C8B29-82DF-49C0-986B-81182CF84E42}.Release|x86.Build.0 = Release|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Debug|x64.Build.0 = Debug|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Debug|x86.Build.0 = Debug|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Release|x64.ActiveCfg = Release|x64
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Release|x64.Build.0 = Release|x64
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Release|x86.ActiveCfg = Release|Any CPU
+		{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

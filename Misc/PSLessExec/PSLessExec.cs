@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace PSLessExec
 {
-    public class Program
+    public class PSLessExec
     {
         public static uint SC_MANAGER_ALL_ACCESS = 0xF003F;
         public static uint SERVICE_ALL_ACCESS = 0xF01FF;
@@ -119,7 +119,7 @@ namespace PSLessExec
 
             String[] args = argslist.ToArray();
 
-            Program.Main(args);
+            PSLessExec.Main(args);
         }
 
         private object GetParam(string p)
@@ -150,7 +150,7 @@ namespace PSLessExec
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
             }
             return string.Empty;
