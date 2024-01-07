@@ -2,7 +2,9 @@
 
 A marriage between [Octoberfest/OSEP-Tools](https://github.com/Octoberfest7/OSEP-Tools) and [chvancooten/OSEP-Code-Snippets](https://github.com/chvancooten/OSEP-Code-Snippets). Thanks to those guys for putting in the real work.
 
-I made some changes to the repos obviously. The easiest way to see what I've done is check the commits and my [Changelog](#changelog) section below. Basically what I did was just rewriting the documentation for the tools, and fix some small things here and there. I kept everything from OSEP-Tools, but only the projects that I deemed useful from OSEP-Code-Snippets.
+I made some changes to the repos obviously. The easiest way to see what I've done is check the commits and my [Changelog](#osep-tools-v2-changelog) section below. Basically what I did was just rewrite/reformat the documentation for the tools, and fix some things here and there.
+
+Alot of my focus has been on adding to the shellcode loading C#/PS projects, and Misc things. I most of OSEP-Tools, and a few projects from OSEP-Code-Snippets that weren't covered already.
 
 Below is a small table of contents, some notes, my changelog, and then the disclaimer from the OG OSEP-Tools repo author.
 
@@ -19,6 +21,43 @@ Below is a small table of contents, some notes, my changelog, and then the discl
 | Misc | Tools aiding in misc things like AV enumeration, automation, dumping LSASS memory, and RCE leveraging win32 API | `AV_Stuff`, `Autos`, `PSLessExec`, `MiniDump` |
 | Privilege_Escalation | Tools that aid in Windows PE | `PrinSpoofer.Net`, `shakeitoff`, `UACBypass.ps1` |
 
+## OSEP-Tools-v2 Changelog
+- [11/25/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/abf34fb4b0c761091ace1be6368c8bbdfcc3b2bb)
+    - Initial commit; File structure changes, README updates/prettifying, repo merging
+- 11/26/2023
+    - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process
+    - Updated `WordMacroInject.vbs` to enumerate 32-bit processes and inject into a process other than `WINWORD.exe`
+    - Updated `Disable-AVProduct.ps1` to better enumerate security products
+    - Added `Misc/Autos` directory to automate common processes; Added `Create-Admin.ps1`
+- 12/01/2023
+    - Updated `Disable-AVProduct.ps1` to actually disable windows defender (using provided cmdlets/registry keys, nothing crazy)
+    - More thorough minifying of `Disable-AVProduct.min.ps1`
+    - Fix `powerhollow.py` and `powerinject.py` payloads to not fail if no Amsi found
+    - Add input checks to ensure hollowing targets are valid
+- 12/03/2023
+    - Compile all projects to single directory for ease of access
+- 12/13/2023
+    - Fix D_invoke dependency issue. Modify underlying build command to allow build error debugging
+    - Add reverse shell functionality to `altbypass`
+    - Add new formatter `bin_to_vbappArray.py`
+    - Update `powerinject.py` payloads to always execute in a 64-bit process
+- 01/06/2023
+    - Update `powerinject.py` target injection process identification method. Add `any` target option.
+    - Add `clrunner` payload. Add InstallUtil bypass to all `cl*` Shellcode Loaders.
+    - General Optimization of projects mapped to `payloads/` directory.
+- 01/07/2023
+  - Add `DLLInject64` and `DLLRunner32`. Remove `nonDN2J.hta`.
+
+## TODOs
+
+- Implement dynamic AMSI search capability as seen here: https://secureyourit.co.uk/wp/2019/05/10/dynamic-microsoft-office-365-amsi-in-memory-bypass-using-vba/
+- Update `AV_Stuff` scripts
+    - Add AppLocker Rules  disabling option to `Get-AppLockerRules.ps1`
+    - Add `DisableLSA` script using my private notes
+- Patch the `x64_met_staged_reverseHttps*` payloads in `/bins` bc they don't work. The tcp do.
+    - Notes in the Loaders_Shellcode readme
+- Integrate more of OSEP-Code-Snippets
+- Update `UACBypass.ps1`
 
 ## Notes
 
@@ -62,44 +101,6 @@ Your target parent process for PPID spoofing must be of the same integrity or lo
 
 - https://depthsecurity.com/blog/obfuscating-malicious-macro-enabled-word-docs
 - https://secureyourit.co.uk/wp/2020/04/18/enumerating-process-modules-in-vba/
-
-## To DOs
-
-- Implement dynamic AMSI search capability as seen here: https://secureyourit.co.uk/wp/2019/05/10/dynamic-microsoft-office-365-amsi-in-memory-bypass-using-vba/
-- Update `AV_Stuff` scripts
-    - Add AppLocker Rules  disabling option to `Get-AppLockerRules.ps1`
-    - Add `DisableLSA` script using my private notes
-- Patch the `x64_met_staged_reverseHttps*` payloads in `/bins` bc they don't work. The tcp do.
-    - Notes in the Loaders_Shellcode readme
-- Integrate more of OSEP-Code-Snippets
-- Update `UACBypass.ps1`
-
-## Changelog
-- [11/25/2023](https://github.com/hackinaggie/OSEP-Tools-v2/commit/abf34fb4b0c761091ace1be6368c8bbdfcc3b2bb)
-    - Initial commit; File structure changes, README updates/prettifying, repo merging
-- 11/26/2023
-    - Updated `WordMacroInject.vbs` to be able to inject when ran from a 32-bit Word process
-    - Updated `WordMacroInject.vbs` to enumerate 32-bit processes and inject into a process other than `WINWORD.exe`
-    - Updated `Disable-AVProduct.ps1` to better enumerate security products
-    - Added `Misc/Autos` directory to automate common processes; Added `Create-Admin.ps1`
-- 12/01/2023
-    - Updated `Disable-AVProduct.ps1` to actually disable windows defender (using provided cmdlets/registry keys, nothing crazy)
-    - More thorough minifying of `Disable-AVProduct.min.ps1`
-    - Fix `powerhollow.py` and `powerinject.py` payloads to not fail if no Amsi found
-    - Add input checks to ensure hollowing targets are valid
-- 12/03/2023
-    - Compile all projects to single directory for ease of access
-- 12/13/2023
-    - Fix D_invoke dependency issue. Modify underlying build command to allow build error debugging
-    - Add reverse shell functionality to `altbypass`
-    - Add new formatter `bin_to_vbappArray.py`
-    - Update `powerinject.py` payloads to always execute in a 64-bit process
-- 01/06/2023
-    - Update `powerinject.py` target injection process identification method. Add `any` target option.
-    - Add `clrunner` payload. Add InstallUtil bypass to all `cl*` Shellcode Loaders.
-    - General Optimization of projects mapped to `payloads/` directory.
-- 01/07/2023
-  - Add `DLLInject64` and `DLLRunner32`. Remove `nonDN2J.hta`.
 
 # Disclaimer
 > @Octoberfest7
