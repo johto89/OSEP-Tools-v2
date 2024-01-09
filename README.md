@@ -4,7 +4,7 @@ A marriage between [Octoberfest/OSEP-Tools](https://github.com/Octoberfest7/OSEP
 
 I made some changes to the repos obviously. The easiest way to see what I've done is check the commits and my [Changelog](#osep-tools-v2-changelog) section below. Basically what I did was just rewrite/reformat the documentation for the tools, and fix some things here and there.
 
-Alot of my focus has been on adding to the shellcode loading C#/PS projects, and Misc things. I most of OSEP-Tools, and a few projects from OSEP-Code-Snippets that weren't covered already.
+Alot of my focus has been on adding to the shellcode loading C#/PS projects, and Misc things. I included most of OSEP-Tools, and a few projects from OSEP-Code-Snippets that weren't covered already.
 
 Below is a small table of contents, some notes, my changelog, and then the disclaimer from the OG OSEP-Tools repo author.
 

