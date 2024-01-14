@@ -47,6 +47,8 @@ Below is a small table of contents, some notes, my changelog, and then the discl
     - General Optimization of projects mapped to `payloads/` directory.
 - 01/07/2023
   - Add `DLLInject64` and `DLLRunner32`. Remove `nonDN2J.hta`.
+- 01/14/2023
+  - Add `ASPX_Inject64` and `ASPX_Runner64` projects
 
 ## TODOs
 
