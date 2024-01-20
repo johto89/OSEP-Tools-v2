@@ -13,9 +13,9 @@ Below is a small table of contents, some notes, my changelog, and then the discl
 | Module | Description | SubModules |
 | ------ | ----------- | ---------- |
 | Active_Directory | Tools that may aid in AD enumeration/exploitation | `sql` |
-| AppLocker_Bypass | Tools that may aid in bypassing AppLocker | `altBypass`, `psBypass` |
+| AppLocker_Bypass | Tools that may aid in bypassing AppLocker | `altBypass`, `DLLInject64`, `DLLRunner32`, `psBypass` |
 | Linux | Tools that aid in executing shells on a Linux box | `Linux_Shellcode_Encoders`, `Linux_Shellcode_Loaders` |
-| Loaders_Disk | Tools that aid in loading shellcode into memory, *from disk*, and executing | `DLLInject64`, `DLLRunner32`, `ASPX_Inject64`, `ASPX_Runner64`, `clrunner`, `clhollow`, `clinject`, `D_invoke` |
+| Loaders_Disk | Tools that aid in loading shellcode into memory, *from disk*, and executing | `ASPX_Inject64`, `ASPX_Runner64`, `clrunner`, `clhollow`, `clinject`, `D_invoke` |
 | Loaders_Memory | Tools that aid in loading shellcode into memory, *from memory*. Usually scripts fetched remotely in powershell. | `powerhollow.py`, `powerinject.py` |
 | Macros | Tools that aid in executing shellcode either from memory or disk, from a word VBS Macro | `WordMacroRunner.vbs`, `WordMacroRunnerBasic.vbs`, `vbObfuscate.ps1`, `WordPsCradle.vbs`, `WordMacroInject.vbs` |
 | Misc | Tools aiding in misc things like AV enumeration, automation, dumping LSASS memory, and RCE leveraging win32 API | `AV_Stuff`, `Autos`, `PSLessExec`, `MiniDump` |
@@ -41,15 +41,17 @@ Below is a small table of contents, some notes, my changelog, and then the discl
     - Add reverse shell functionality to `altbypass`
     - Add new formatter `bin_to_vbappArray.py`
     - Update `powerinject.py` payloads to always execute in a 64-bit process
-- 01/06/2023
+- 01/06/2024
     - Update `powerinject.py` target injection process identification method. Add `any` target option.
     - Add `clrunner` payload. Add InstallUtil bypass to all `cl*` Shellcode Loaders.
     - General Optimization of projects mapped to `payloads/` directory.
-- 01/07/2023
+- 01/07/2024
   - Add `DLLInject64` and `DLLRunner32`. Remove `nonDN2J.hta`.
-- 01/14/2023
+- 01/14/2024
   - Add `ASPX_Inject64` and `ASPX_Runner64` projects
   - Rename `Loaders_PEs` to `Loaders_Disk`, `Loaders_Shellcode` to `Loaders_Memory`, move projects between them.
+- 01/20/2024
+  - `DLLInject64` and `DLLRunner32`: Move to `AppLocker_Bypass`, add AMSI Bypasses, and add XSL + HTA Payload examples.
 
 ## TODOs
 

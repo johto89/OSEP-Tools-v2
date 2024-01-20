@@ -9,9 +9,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "altbypass", "..\AppLocker_B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "psbypass", "..\AppLocker_Bypass\psBypass\psbypass.csproj", "{0731542C-42CF-4158-AC29-459EFE42F1B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clhollow", "..\Loaders_Shellcode\clhollow\clhollow.csproj", "{9432CB8F-F42F-4588-89B8-B4C48C489BEB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clhollow", "..\Loaders_Memory\clhollow\clhollow.csproj", "{9432CB8F-F42F-4588-89B8-B4C48C489BEB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clinject", "..\Loaders_Shellcode\clinject\clinject.csproj", "{2A515F49-2C07-4747-A5EF-E47516D17C05}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clinject", "..\Loaders_Memory\clinject\clinject.csproj", "{2A515F49-2C07-4747-A5EF-E47516D17C05}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSLessExec", "..\Misc\Fileless_Lateral_Movement\PSLessExec.csproj", "{77F955C3-4910-49EA-9CD4-CBF5AD9C071A}"
 EndProject
@@ -19,11 +19,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniDump", "..\Misc\MiniDum
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrintSpoofer", "..\Privilege_Escalation\PrintSpoofer.NET\PrintSpoofer.csproj", "{C91C8B29-82DF-49C0-986B-81182CF84E42}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clrunner", "..\Loaders_Shellcode\clrunner\clrunner.csproj", "{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clrunner", "..\Loaders_Memory\clrunner\clrunner.csproj", "{3D0468A8-B22E-4A3C-95A2-B973F1F8D3B1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DLLRunner32_DN2JS", "..\Loaders_PEs\DLLRunner32\DLLRunner32_DN2JS.csproj", "{D8337B89-8E8D-4F3F-9F82-3D1EC83810C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DLLRunner32_DN2JS", "..\Loaders_Disk\DLLRunner32\DLLRunner32_DN2JS.csproj", "{D8337B89-8E8D-4F3F-9F82-3D1EC83810C1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DLLInject64_DN2JS", "..\Loaders_PEs\DLLInject64\DLLInject64_DN2JS.csproj", "{86D0AA20-3C48-4B18-BD6C-79022279812A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DLLInject64_DN2JS", "..\Loaders_Disk\DLLInject64\DLLInject64_DN2JS.csproj", "{86D0AA20-3C48-4B18-BD6C-79022279812A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
