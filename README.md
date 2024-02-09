@@ -2,9 +2,9 @@
 
 A marriage between [Octoberfest/OSEP-Tools](https://github.com/Octoberfest7/OSEP-Tools) and [chvancooten/OSEP-Code-Snippets](https://github.com/chvancooten/OSEP-Code-Snippets). Thanks to those guys for putting in the real work.
 
-I made some changes to the repos obviously. The easiest way to see what I've done is check the commits and my [Changelog](#osep-tools-v2-changelog) section below. Basically what I did was just rewrite/reformat the documentation for the tools, and fix some things here and there.
+I made some changes to the repos obviously. The easiest way to see what I've done is check the commits and my [Changelog](#osep-tools-v2-changelog) section below. I rewrote/reformatted the documentation for the tools, fixed some things here and there, and added some decent functionality on top of the old projects.
 
-Alot of my focus has been on adding to the shellcode loading C#/PS projects, and Misc things. I included most of OSEP-Tools, and a few projects from OSEP-Code-Snippets that weren't covered already.
+Alot of my focus has been on adding to the shellcode loading C#/PS projects, AppLocker bypasses, and Misc things. I included most of OSEP-Tools, and a few projects from OSEP-Code-Snippets that weren't covered already. Keep in mind the projects here are mostly to give you a starting point from which you can expand and upgrade your own versions of the tools.
 
 Below is a small table of contents, some notes, my changelog, and then the disclaimer from the OG OSEP-Tools repo author.
 
@@ -12,8 +12,8 @@ Below is a small table of contents, some notes, my changelog, and then the discl
 
 | Module | Description | SubModules |
 | ------ | ----------- | ---------- |
-| Active_Directory | Tools that may aid in AD enumeration/exploitation | `sql` |
-| AppLocker_Bypass | Tools that may aid in bypassing AppLocker | `altBypass`, `DLLInject64`, `DLLRunner32`, `psBypass` |
+| Active_Directory | Tools that aid in AD enumeration/exploitation | `sql` |
+| AppLocker_Bypass | Tools that aid in bypassing AppLocker | `altBypass`, `DLLInject64`, `DLLRunner32`, `psBypass` |
 | Linux | Tools that aid in executing shells on a Linux box | `Linux_Shellcode_Encoders`, `Linux_Shellcode_Loaders` |
 | Loaders_Disk | Tools that aid in loading shellcode into memory, *from disk*, and executing | `ASPX_Inject64`, `ASPX_Runner64`, `clrunner`, `clhollow`, `clinject`, `D_invoke` |
 | Loaders_Memory | Tools that aid in loading shellcode into memory, *from memory*. Usually scripts fetched remotely in powershell. | `powerhollow.py`, `powerinject.py` |
