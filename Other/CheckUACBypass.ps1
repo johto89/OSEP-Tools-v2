@@ -1,4 +1,4 @@
-﻿<#
+<#
 Author: Johto Robbie
 License: GPLv3
 #>
@@ -165,6 +165,35 @@ function Check-RegistryModifications {
     }
 }
 
+# Function to check if the user is an administrator but is still running with Medium Integrity Level
+function Check-MediumIntegrityLevel {
+    $integrityLevel = (whoami /groups | Select-String 'Mandatory Label\.*Medium').Matches.Value
+    if ($integrityLevel) {
+        Write-Host "`nWarning: The user is in the Administrator group but running with Medium Integrity Level. UAC bypass may be required to elevate to High Integrity."
+    }
+}
+
+# Function to check for eventvwr.exe autoElevate setting
+function Check-EventvwrAutoElevate {
+    Write-Host "`nChecking for eventvwr.exe autoElevate setting:"
+    $eventvwrPath = Get-Command eventvwr.exe | Select-Object -ExpandProperty Source
+    if ($eventvwrPath) {
+        Write-Host "Eventvwr.exe located at: $eventvwrPath"
+        try {
+            $autoElevateCheck = & "C:\Path\To\strings64.exe" -accepteula $eventvwrPath | Select-String 'autoElevate' -Quiet
+            if ($autoElevateCheck) {
+                Write-Host "AutoElevate=true is set for eventvwr.exe, potential UAC bypass vector."
+            } else {
+                Write-Host "AutoElevate setting not found for eventvwr.exe."
+            }
+        } catch {
+            Write-Host "Error checking autoElevate for eventvwr.exe: $_"
+        }
+    } else {
+        Write-Host "Eventvwr.exe not found on this system."
+    }
+}
+
 # Helper function to check if a file is a .NET assembly
 function IsDotNetAssembly {
     param ([string]$filePath)
@@ -177,7 +206,8 @@ function IsDotNetAssembly {
     }
 }
 
-# Main script execution
+# Start of script execution
+Write-Host "Starting UAC Bypass Detection..."
 Check-UACLevel
 Check-ScheduledTasks
 Check-BypassRegistryKeys
@@ -186,3 +216,6 @@ Check-Services
 Check-UIAccessProcesses
 Check-DllHijacking
 Check-RegistryModifications
+Check-MediumIntegrityLevel
+Check-EventvwrAutoElevate
+Write-Host "`nUAC Bypass Detection completed."
