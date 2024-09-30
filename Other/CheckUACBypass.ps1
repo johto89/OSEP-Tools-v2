@@ -118,7 +118,7 @@ function Check-UIAccessProcesses {
             $_.GetOwner().User -eq 'SYSTEM' -and $_.CommandLine -like '*UIAccess=true*'
         } catch {
             Write-Host "Error getting owner for process ID $($_.ProcessId): $_"
-            $false  # Return false if there is an error
+            $false  
         }
     }
 
@@ -180,6 +180,7 @@ function Check-EventvwrAutoElevate {
     if ($eventvwrPath) {
         Write-Host "Eventvwr.exe located at: $eventvwrPath"
         try {
+            # Download strings64.exe from https://learn.microsoft.com/en-us/sysinternals/downloads/strings
             $autoElevateCheck = & "C:\Path\To\strings64.exe" -accepteula $eventvwrPath | Select-String 'autoElevate' -Quiet
             if ($autoElevateCheck) {
                 Write-Host "AutoElevate=true is set for eventvwr.exe, potential UAC bypass vector."
@@ -206,7 +207,6 @@ function IsDotNetAssembly {
     }
 }
 
-# Start of script execution
 Write-Host "Starting UAC Bypass Detection..."
 Check-UACLevel
 Check-ScheduledTasks
