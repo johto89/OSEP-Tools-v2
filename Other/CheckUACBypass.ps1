@@ -40,20 +40,32 @@ function Check-ScheduledTasks {
 # Function to check if registry keys have been modified for UAC bypass methods
 function Check-BypassRegistryKeys {
     Write-Host "`nChecking registry keys for potential UAC bypasses:"
+    
     # Eventvwr bypass
+    Write-Host "Checking for Eventvwr UAC bypass:"
     CheckRegistryBypass "HKCU:\Software\Classes\mscfile\Shell\Open\command" '(default)'
+    
     # Fodhelper bypass
+    Write-Host "Checking for Fodhelper UAC bypass:"
     CheckRegistryBypass "HKCU:\Software\Classes\ms-settings\Shell\Open\command" '(default)'
     CheckRegistryBypass "HKCU:\Software\Classes\ms-settings\Shell\Open\command" 'DelegateExecute'
+    
     # ComputerDefaults bypass
+    Write-Host "Checking for ComputerDefaults UAC bypass:"
     CheckRegistryBypass "HKCU:\Software\Classes\ms-settings\Shell\Open\command" '(default)'
     CheckRegistryBypass "HKCU:\Software\Classes\ms-settings\Shell\Open\command" 'DelegateExecute'
+    
     # SDCLT bypass
+    Write-Host "Checking for SDCLT UAC bypass:"
     CheckRegistryBypass "HKCU:\Software\Classes\Folder\shell\open\command" '(default)'
     CheckRegistryBypass "HKCU:\Software\Classes\Folder\shell\open\command" 'DelegateExecute'
+    
     # SLUI bypass
+    Write-Host "Checking for SLUI UAC bypass:"
     CheckRegistryBypass "HKCU:\Software\Classes\exefile\Shell\Open\command" '(default)'
+    
     # DiskCleanup bypass
+    Write-Host "Checking for DiskCleanup UAC bypass:"
     CheckRegistryBypass "HKCU:\Environment" 'windir'
 }
 
