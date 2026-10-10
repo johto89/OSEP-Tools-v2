@@ -1,221 +1,407 @@
 <#
-Author: Johto Robbie
-License: GPLv3
+.SYNOPSIS
+    UAC Bypass Posture & Artifact Auditor.
+
+.DESCRIPTION
+    Audits a Windows host for (a) configuration that makes it susceptible to
+    known UAC bypass techniques and (b) on-disk / registry artifacts left behind
+    by common bypass primitives (fodhelper, eventvwr, sdclt, computerdefaults,
+    slui, DiskCleanup/windir, mscfile).
+
+    Findings are emitted as structured objects so they can be piped to
+    Export-Csv / ConvertTo-Json for reporting. Use -AsJson for machine output.
+
+    Read-only by design: the script never writes to the registry or filesystem
+    and never loads untrusted binaries into the process.
+
+.NOTES
+    Author : Johto Robbie
+    License: GPLv3
+
+    Severity legend:
+        Critical / High / Medium / Low / Info
+
+.EXAMPLE
+    .\UAC-BypassAudit.ps1
+
+.EXAMPLE
+    .\UAC-BypassAudit.ps1 -AsJson | Out-File audit.json -Encoding utf8
 #>
 
-# Function to check current UAC level
-function Check-UACLevel {
-    $uacSettings = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -ErrorAction SilentlyContinue
-    if ($null -eq $uacSettings) {
-        Write-Host "Unable to retrieve UAC settings."
-        return
-    }
-
-    $consentPrompt = $uacSettings.ConsentPromptBehaviorAdmin
-    $enableLUA = $uacSettings.EnableLUA
-
-    Write-Host "Checking the current UAC level:"
-    if ($enableLUA -eq 0) {
-        Write-Host "UAC is disabled, the system is vulnerable to UAC bypass."
-    } elseif ($consentPrompt -eq 0) {
-        Write-Host "UAC is at its lowest level, vulnerable to UAC bypass."
-    } else {
-        Write-Host "UAC is properly configured."
-    }
-}
-
-# Function to check scheduled tasks running with 'highest privileges'
-function Check-ScheduledTasks {
-    Write-Host "`nChecking Scheduled Tasks running with 'highest privileges':"
-    $tasks = Get-ScheduledTask | Where-Object {$_.Settings.RunLevel -eq "Highest"}
-    if ($tasks) {
-        foreach ($task in $tasks) {
-            Write-Host "Task: $($task.TaskName) runs with elevated privileges"
-        }
-    } else {
-        Write-Host "No Scheduled Tasks are running with elevated privileges."
-    }
-}
-
-# Function to check if registry keys have been modified for UAC bypass methods
-function Check-BypassRegistryKeys {
-    Write-Host "`nChecking registry keys for potential UAC bypasses:"
-    # Eventvwr bypass
-    CheckRegistryBypass "HKCU:\Software\Classes\mscfile\Shell\Open\command" '(default)'
-    # Fodhelper bypass
-    CheckRegistryBypass "HKCU:\Software\Classes\ms-settings\Shell\Open\command" '(default)'
-    CheckRegistryBypass "HKCU:\Software\Classes\ms-settings\Shell\Open\command" 'DelegateExecute'
-    # ComputerDefaults bypass
-    CheckRegistryBypass "HKCU:\Software\Classes\ms-settings\Shell\Open\command" '(default)'
-    CheckRegistryBypass "HKCU:\Software\Classes\ms-settings\Shell\Open\command" 'DelegateExecute'
-    # SDCLT bypass
-    CheckRegistryBypass "HKCU:\Software\Classes\Folder\shell\open\command" '(default)'
-    CheckRegistryBypass "HKCU:\Software\Classes\Folder\shell\open\command" 'DelegateExecute'
-    # SLUI bypass
-    CheckRegistryBypass "HKCU:\Software\Classes\exefile\Shell\Open\command" '(default)'
-    # DiskCleanup bypass
-    CheckRegistryBypass "HKCU:\Environment" 'windir'
-}
-
-# Helper function to check registry bypass for specific keys
-function CheckRegistryBypass {
-    param (
-        [string]$keyPath,
-        [string]$valueName
+[CmdletBinding()]
+param(
+    [switch]$AsJson,
+    # Suspicious command-string patterns used to flag hijacked shell commands.
+    [string[]]$SuspiciousCommandPatterns = @(
+        'cmd(\.exe)?', 'powershell', 'pwsh', 'wscript', 'cscript', 'mshta',
+        'rundll32', 'regsvr32', '\\temp\\', '%temp%', '\\appdata\\',
+        '\\users\\public\\', 'certutil', 'bitsadmin', '-enc', '-e\s', 'FromBase64'
     )
+)
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+#region Helpers -----------------------------------------------------------------
+
+$script:Findings = [System.Collections.Generic.List[object]]::new()
+
+function New-Finding {
+    param(
+        [Parameter(Mandatory)][string]$Category,
+        [Parameter(Mandatory)][ValidateSet('Critical','High','Medium','Low','Info')][string]$Severity,
+        [Parameter(Mandatory)][string]$Title,
+        [string]$Detail,
+        [object]$Evidence
+    )
+    $script:Findings.Add([PSCustomObject]@{
+        Timestamp = (Get-Date).ToString('o')
+        Category  = $Category
+        Severity  = $Severity
+        Title     = $Title
+        Detail    = $Detail
+        Evidence  = $Evidence
+    })
+}
+
+function Test-IsAdministrator {
+    # True only when the current process token is actually elevated (High IL+).
+    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [System.Security.Principal.WindowsPrincipal]::new($id)
+    return $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Get-ProcessIntegrityLevel {
+    # Resolve the integrity level of the current token from its mandatory-label SID,
+    # which is language-independent (unlike parsing `whoami /groups` text).
     try {
-        $keyValue = Get-ItemProperty -Path $keyPath -Name $valueName -ErrorAction Stop
-        if ($null -ne $keyValue) {
-            Write-Host "UAC bypass detected at ${keyPath}: $($keyValue.$valueName)"
+        $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $labelSid = ($id.Groups | Where-Object {
+            $_.Value -like 'S-1-16-*'
+        } | Select-Object -First 1).Value
+
+        switch ($labelSid) {
+            'S-1-16-4096'  { 'Low' }
+            'S-1-16-8192'  { 'Medium' }
+            'S-1-16-8448'  { 'MediumPlus' }
+            'S-1-16-12288' { 'High' }
+            'S-1-16-16384' { 'System' }
+            default        { "Unknown ($labelSid)" }
         }
     } catch {
-        Write-Host "Error accessing registry key ${keyPath}: $_"
+        'Unknown'
     }
 }
 
-# Function to check if applications have 'autoElevate=true' in their manifest
-function Check-AutoElevate {
-    Write-Host "`nChecking applications with 'autoElevate=true':"
-    $executables = Get-ChildItem -Path "C:\Windows\System32\" -Filter "*.exe" -ErrorAction SilentlyContinue
+function Get-EmbeddedManifestText {
+    # Extract the embedded RT_MANIFEST (resource type 24) text from a PE without
+    # executing it, by loading the file as a resource-only module.
+    param([Parameter(Mandatory)][string]$Path)
 
-    foreach ($exe in $executables) {
-        if (IsDotNetAssembly $exe.FullName) {
-            try {
-                $assembly = [System.Reflection.Assembly]::LoadFile($exe.FullName)
-                $customAttributes = $assembly.CustomAttributes
-                foreach ($attribute in $customAttributes) {
-                    if ($attribute.AttributeType.Name -eq "autoElevate") {
-                        Write-Host "Application with 'autoElevate=true' detected: $($exe.FullName)"
-                    }
-                }
-            } catch {
-                Write-Host "Error processing $($exe.FullName): $_"
-            }
-        } else {
-            Write-Host "Skipping non-.NET assembly: $($exe.FullName)"
-        }
-    }
-}
+    $signature = @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class ManifestReader {
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    static extern IntPtr LoadLibraryEx(string f, IntPtr h, uint flags);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool FreeLibrary(IntPtr h);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr FindResource(IntPtr h, IntPtr name, IntPtr type);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr LoadResource(IntPtr h, IntPtr res);
+    [DllImport("kernel32.dll")]
+    static extern IntPtr LockResource(IntPtr data);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern uint SizeofResource(IntPtr h, IntPtr res);
 
-# Function to check services running with LocalSystem privileges
-function Check-Services {
-    Write-Host "`nChecking services running with LocalSystem privileges:"
-    $services = Get-WmiObject -Query "SELECT * FROM Win32_Service WHERE StartName='LocalSystem' AND (StartMode='Auto' OR StartMode='Manual')" -ErrorAction SilentlyContinue
-    if ($services) {
-        foreach ($service in $services) {
-            Write-Host "Service: $($service.DisplayName) is running with LocalSystem privileges"
-        }
-    } else {
-        Write-Host "No services are running with LocalSystem privileges."
-    }
-}
+    const uint LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x00000020;
+    const uint LOAD_LIBRARY_AS_DATAFILE       = 0x00000002;
 
-# Function to check for processes with UIAccess flag set
-function Check-UIAccessProcesses {
-    $uiAccessProcesses = Get-WmiObject Win32_Process | Where-Object {
+    public static string Read(string path) {
+        IntPtr hMod = LoadLibraryEx(path, IntPtr.Zero,
+            LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE);
+        if (hMod == IntPtr.Zero) return null;
         try {
-            $_.GetOwner().User -eq 'SYSTEM' -and $_.CommandLine -like '*UIAccess=true*'
-        } catch {
-            Write-Host "Error getting owner for process ID $($_.ProcessId): $_"
-            $false  
-        }
-    }
-
-    if ($uiAccessProcesses) {
-        Write-Host "Processes with UIAccess flag set:"
-        foreach ($process in $uiAccessProcesses) {
-            Write-Host "Process Name: $($process.Name) - PID: $($process.ProcessId) - Command Line: $($process.CommandLine)"
-        }
-    } else {
-        Write-Host "No processes with UIAccess flag found."
-    }
-}
-
-# Function to check for DLL hijacking
-function Check-DllHijacking {
-    $hijackedDlls = @("comctrl32.dll", "dismcore.dll", "wow64log.dll")
-    $system32Path = "C:\Windows\System32"
-
-    foreach ($dll in $hijackedDlls) {
-        $dllPath = Join-Path -Path $system32Path -ChildPath $dll
-        if (Test-Path $dllPath) {
-            Write-Host "Potential DLL hijacking detected: $dllPath"
+            // RT_MANIFEST = 24, CREATEPROCESS_MANIFEST_RESOURCE_ID = 1
+            IntPtr hRes = FindResource(hMod, (IntPtr)1, (IntPtr)24);
+            if (hRes == IntPtr.Zero) return string.Empty;
+            uint size = SizeofResource(hMod, hRes);
+            IntPtr hData = LoadResource(hMod, hRes);
+            if (hData == IntPtr.Zero || size == 0) return string.Empty;
+            IntPtr p = LockResource(hData);
+            byte[] buf = new byte[size];
+            Marshal.Copy(p, buf, 0, (int)size);
+            return Encoding.UTF8.GetString(buf);
+        } finally {
+            FreeLibrary(hMod);
         }
     }
 }
-
-# Function to check for registry modifications
-function Check-RegistryModifications {
-    $registryPaths = @(
-        "HKCU:\Software\Classes\ms-settings\shell\open\command",
-        "HKCU:\Environment"
-    )
-
-    foreach ($path in $registryPaths) {
-        # Accessing the "(default)" property safely
-        try {
-            $defaultValue = Get-ItemProperty -Path $path -ErrorAction Stop | Select-Object -ExpandProperty '(default)' -ErrorAction Stop
-            if ($null -ne $defaultValue) {
-                Write-Host "Registry modification detected at ${path}: ${defaultValue}"
-            }
-        } catch {
-            Write-Host "Error accessing registry key ${path}: $_"
-        }
+'@
+    if (-not ('ManifestReader' -as [type])) {
+        Add-Type -TypeDefinition $signature -ErrorAction Stop
     }
+    try { return [ManifestReader]::Read($Path) } catch { return $null }
 }
 
-# Function to check if the user is an administrator but is still running with Medium Integrity Level
-function Check-MediumIntegrityLevel {
-    $integrityLevel = (whoami /groups | Select-String 'Mandatory Label\.*Medium').Matches.Value
-    if ($integrityLevel) {
-        Write-Host "`nWarning: The user is in the Administrator group but running with Medium Integrity Level. UAC bypass may be required to elevate to High Integrity."
-    }
-}
-
-# Function to check for eventvwr.exe autoElevate setting
-function Check-EventvwrAutoElevate {
-    Write-Host "`nChecking for eventvwr.exe autoElevate setting:"
-    $eventvwrPath = Get-Command eventvwr.exe | Select-Object -ExpandProperty Source
-    if ($eventvwrPath) {
-        Write-Host "Eventvwr.exe located at: $eventvwrPath"
-        try {
-            # Download strings64.exe from https://learn.microsoft.com/en-us/sysinternals/downloads/strings
-            $autoElevateCheck = & "C:\Path\To\strings64.exe" -accepteula $eventvwrPath | Select-String 'autoElevate' -Quiet
-            if ($autoElevateCheck) {
-                Write-Host "AutoElevate=true is set for eventvwr.exe, potential UAC bypass vector."
-            } else {
-                Write-Host "AutoElevate setting not found for eventvwr.exe."
-            }
-        } catch {
-            Write-Host "Error checking autoElevate for eventvwr.exe: $_"
-        }
-    } else {
-        Write-Host "Eventvwr.exe not found on this system."
-    }
-}
-
-# Helper function to check if a file is a .NET assembly
-function IsDotNetAssembly {
-    param ([string]$filePath)
-
+function Test-FileMicrosoftSigned {
+    param([Parameter(Mandatory)][string]$Path)
     try {
-        [System.Reflection.Assembly]::LoadFile($filePath) | Out-Null
-        return $true
+        $sig = Get-AuthenticodeSignature -FilePath $Path -ErrorAction Stop
+        return ($sig.Status -eq 'Valid' -and $sig.SignerCertificate.Subject -match 'Microsoft')
     } catch {
         return $false
     }
 }
 
-Write-Host "Starting UAC Bypass Detection..."
-Check-UACLevel
-Check-ScheduledTasks
-Check-BypassRegistryKeys
-Check-AutoElevate
-Check-Services
-Check-UIAccessProcesses
-Check-DllHijacking
-Check-RegistryModifications
-Check-MediumIntegrityLevel
-Check-EventvwrAutoElevate
-Write-Host "`nUAC Bypass Detection completed."
+#endregion Helpers --------------------------------------------------------------
+
+#region Checks ------------------------------------------------------------------
+
+function Invoke-UACLevelCheck {
+    $path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    try {
+        $s = Get-ItemProperty -Path $path -ErrorAction Stop
+    } catch {
+        New-Finding -Category 'UAC Config' -Severity 'Info' `
+            -Title 'Cannot read UAC policy' -Detail $_.Exception.Message
+        return
+    }
+
+    function Get-Prop($obj, $name) {
+        $p = $obj.PSObject.Properties[$name]
+        if ($p) { $p.Value } else { $null }
+    }
+    $enableLUA     = Get-Prop $s 'EnableLUA'
+    $consentAdmin  = Get-Prop $s 'ConsentPromptBehaviorAdmin'
+    $secureDesktop = Get-Prop $s 'PromptOnSecureDesktop'
+
+    if ($enableLUA -eq 0) {
+        New-Finding -Category 'UAC Config' -Severity 'Critical' `
+            -Title 'UAC fully disabled (EnableLUA=0)' `
+            -Detail 'All processes for admins run at High IL; UAC provides no boundary.' `
+            -Evidence @{ EnableLUA = $enableLUA }
+    }
+    # ConsentPromptBehaviorAdmin: 0 = elevate without prompting (vulnerable),
+    # 2 = prompt on secure desktop (strongest), 5 = default (prompt for non-Windows binaries)
+    if ($consentAdmin -eq 0) {
+        New-Finding -Category 'UAC Config' -Severity 'High' `
+            -Title 'Admin consent prompt disabled (ConsentPromptBehaviorAdmin=0)' `
+            -Detail 'Elevation occurs silently; auto-elevate bypasses are trivial.' `
+            -Evidence @{ ConsentPromptBehaviorAdmin = $consentAdmin }
+    }
+    if ($secureDesktop -eq 0) {
+        New-Finding -Category 'UAC Config' -Severity 'Medium' `
+            -Title 'Secure desktop disabled (PromptOnSecureDesktop=0)' `
+            -Detail 'Consent prompt is spoofable from the user desktop.' `
+            -Evidence @{ PromptOnSecureDesktop = $secureDesktop }
+    }
+    if ($enableLUA -ne 0 -and $consentAdmin -ne 0 -and $secureDesktop -ne 0) {
+        New-Finding -Category 'UAC Config' -Severity 'Info' `
+            -Title 'UAC configured sensibly' `
+            -Evidence @{ EnableLUA=$enableLUA; ConsentPromptBehaviorAdmin=$consentAdmin; PromptOnSecureDesktop=$secureDesktop }
+    }
+}
+
+function Invoke-ElevationContextCheck {
+    $isAdmin = Test-IsAdministrator
+    $il      = Get-ProcessIntegrityLevel
+
+    if ($isAdmin -and $il -eq 'Medium') {
+        New-Finding -Category 'Context' -Severity 'Medium' `
+            -Title 'Admin user running at Medium IL' `
+            -Detail 'Member of Administrators but not elevated. UAC bypass would be the path to High IL. Also: many checks below need elevation to be reliable.' `
+            -Evidence @{ IsAdmin=$isAdmin; IntegrityLevel=$il }
+    } else {
+        New-Finding -Category 'Context' -Severity 'Info' `
+            -Title 'Elevation context' `
+            -Evidence @{ IsAdmin=$isAdmin; IntegrityLevel=$il }
+    }
+
+    if (-not $isAdmin) {
+        New-Finding -Category 'Context' -Severity 'Info' `
+            -Title 'Running without elevation — results may be incomplete' `
+            -Detail 'Scheduled tasks, some services and HKLM reads may be partial. Re-run elevated for full coverage.'
+    }
+}
+
+function Invoke-BypassArtifactCheck {
+    # Hijack points are HKCU shell-command / env keys that known bypasses write.
+    # A *normal* system does NOT have these user-level overrides, so their
+    # presence is itself suspicious; a suspicious command string raises severity.
+    $targets = @(
+        @{ Technique='mscfile (eventvwr)';        Path='HKCU:\Software\Classes\mscfile\Shell\Open\command';     Value='(default)' }
+        @{ Technique='ms-settings (fodhelper/computerdefaults)'; Path='HKCU:\Software\Classes\ms-settings\Shell\Open\command'; Value='(default)' }
+        @{ Technique='ms-settings DelegateExecute'; Path='HKCU:\Software\Classes\ms-settings\Shell\Open\command'; Value='DelegateExecute' }
+        @{ Technique='Folder (sdclt)';            Path='HKCU:\Software\Classes\Folder\shell\open\command';      Value='(default)' }
+        @{ Technique='exefile (slui)';            Path='HKCU:\Software\Classes\exefile\Shell\Open\command';     Value='(default)' }
+        @{ Technique='windir env (DiskCleanup)';  Path='HKCU:\Environment';                                     Value='windir' }
+    )
+
+    foreach ($t in $targets) {
+        try {
+            if (-not (Test-Path $t.Path)) { continue }
+            $item = Get-ItemProperty -Path $t.Path -ErrorAction Stop
+            $prop = $item.PSObject.Properties[$t.Value]
+            if ($null -eq $prop) { continue }
+            $data = [string]$prop.Value
+
+            # windir normally resolves to C:\Windows; anything else is a classic hijack.
+            $looksHijacked =
+                ($t.Value -eq 'windir' -and $data -and $data -notmatch '^[A-Za-z]:\\Windows\\?$') -or
+                ($t.Value -ne 'windir')
+
+            if (-not $looksHijacked) { continue }
+
+            $suspicious = $false
+            foreach ($p in $SuspiciousCommandPatterns) {
+                if ($data -match $p) { $suspicious = $true; break }
+            }
+
+            New-Finding -Category 'Bypass Artifact' `
+                -Severity ($(if ($suspicious) { 'Critical' } else { 'High' })) `
+                -Title "Hijack key present: $($t.Technique)" `
+                -Detail "HKCU override exists where a clean system has none$(if($suspicious){'; command string matches a suspicious pattern'})." `
+                -Evidence @{ Path=$t.Path; Value=$t.Value; Data=$data }
+        } catch {
+            New-Finding -Category 'Bypass Artifact' -Severity 'Info' `
+                -Title "Error reading $($t.Path)" -Detail $_.Exception.Message
+        }
+    }
+}
+
+function Invoke-AutoElevateManifestCheck {
+    # Correctly detect auto-elevate binaries by reading the embedded manifest,
+    # NOT by inspecting .NET attributes. Scope to System32 and skip giant/
+    # already-known-signed noise by only reporting the elevated set.
+    $dir = Join-Path $env:WINDIR 'System32'
+    $exes = Get-ChildItem -Path $dir -Filter '*.exe' -File -ErrorAction SilentlyContinue
+    $count = 0
+    foreach ($exe in $exes) {
+        try {
+            $manifest = Get-EmbeddedManifestText -Path $exe.FullName
+            if ([string]::IsNullOrEmpty($manifest)) { continue }
+            if ($manifest -match '<autoElevate>\s*true\s*</autoElevate>') {
+                $count++
+                # These are legitimate Windows auto-elevate binaries; list them so
+                # the analyst can cross-check them against the hijack keys above.
+                New-Finding -Category 'AutoElevate' -Severity 'Info' `
+                    -Title "Auto-elevate binary: $($exe.Name)" `
+                    -Detail 'Legitimate OS binary that auto-elevates; a candidate target for registry-hijack bypasses.' `
+                    -Evidence @{ Path=$exe.FullName; Signed=(Test-FileMicrosoftSigned $exe.FullName) }
+            }
+        } catch { continue }
+    }
+    if ($count -eq 0) {
+        New-Finding -Category 'AutoElevate' -Severity 'Info' `
+            -Title 'No auto-elevate manifests found (or insufficient privileges to read)'
+    }
+}
+
+function Invoke-ServiceCheck {
+    # LocalSystem auto/manual services are an attack surface for privilege abuse.
+    # Flag only those whose binary path is unquoted-with-spaces or non-system,
+    # which is the condition that actually matters — not merely "runs as SYSTEM".
+    try {
+        $services = Get-CimInstance -ClassName Win32_Service -ErrorAction Stop |
+            Where-Object { $_.StartName -eq 'LocalSystem' -and $_.StartMode -in @('Auto','Manual') }
+    } catch {
+        New-Finding -Category 'Services' -Severity 'Info' `
+            -Title 'Cannot enumerate services' -Detail $_.Exception.Message
+        return
+    }
+
+    foreach ($svc in $services) {
+        $pathName = $svc.PathName
+        if ([string]::IsNullOrWhiteSpace($pathName)) { continue }
+
+        # Extract the executable path (handles quoted and unquoted).
+        $exePath = if ($pathName -match '^\s*"([^"]+)"') { $matches[1] }
+                   elseif ($pathName -match '^\s*(\S+\.exe)') { $matches[1] }
+                   else { $pathName }
+
+        $unquotedWithSpaces = ($pathName -notmatch '^\s*"') -and ($exePath -match '\s')
+
+        if ($unquotedWithSpaces) {
+            New-Finding -Category 'Services' -Severity 'High' `
+                -Title "Unquoted service path: $($svc.Name)" `
+                -Detail 'LocalSystem service with unquoted path containing spaces — classic privilege escalation vector.' `
+                -Evidence @{ Service=$svc.Name; PathName=$pathName }
+        }
+    }
+}
+
+function Invoke-PhantomDllCheck {
+    # Real DLL-hijack detection for auto-elevate flows: check whether DLLs that
+    # elevated binaries are known to probe are ABSENT from System32 (phantom),
+    # which would let an attacker plant one. Presence of a legit system DLL is
+    # NOT a finding (this is the bug in the original script).
+    $phantomCandidates = @('wow64log.dll')  # not present on normal systems; loadable by 64-bit elevated procs
+    $sys32 = Join-Path $env:WINDIR 'System32'
+
+    foreach ($dll in $phantomCandidates) {
+        $full = Join-Path $sys32 $dll
+        if (-not (Test-Path $full)) {
+            New-Finding -Category 'DLL Hijack' -Severity 'Info' `
+                -Title "Phantom DLL slot available: $dll" `
+                -Detail 'Absent from System32 and probed by elevated processes. Not an active compromise, but monitor System32 write access to this name.' `
+                -Evidence @{ ExpectedPath=$full }
+        } else {
+            # It exists — only interesting if it is NOT Microsoft-signed.
+            if (-not (Test-FileMicrosoftSigned $full)) {
+                New-Finding -Category 'DLL Hijack' -Severity 'Critical' `
+                    -Title "Unsigned DLL in System32: $dll" `
+                    -Detail 'A normally-absent DLL exists here and is not Microsoft-signed — strong indicator of a planted hijack DLL.' `
+                    -Evidence @{ Path=$full }
+            }
+        }
+    }
+}
+
+function Invoke-HighPrivTaskCheck {
+    try {
+        $tasks = Get-ScheduledTask -ErrorAction Stop |
+            Where-Object { $_.Principal.RunLevel -eq 'Highest' }
+    } catch {
+        New-Finding -Category 'Scheduled Tasks' -Severity 'Info' `
+            -Title 'Cannot enumerate scheduled tasks' -Detail $_.Exception.Message
+        return
+    }
+    foreach ($t in $tasks) {
+        New-Finding -Category 'Scheduled Tasks' -Severity 'Info' `
+            -Title "Highest-privilege task: $($t.TaskName)" `
+            -Detail 'Runs with highest privileges; review the action/trigger and the principal for abuse potential.' `
+            -Evidence @{ TaskPath=$t.TaskPath; TaskName=$t.TaskName; UserId=$t.Principal.UserId }
+    }
+}
+
+#endregion Checks ---------------------------------------------------------------
+
+#region Main --------------------------------------------------------------------
+
+Invoke-ElevationContextCheck
+Invoke-UACLevelCheck
+Invoke-BypassArtifactCheck
+Invoke-AutoElevateManifestCheck
+Invoke-ServiceCheck
+Invoke-PhantomDllCheck
+Invoke-HighPrivTaskCheck
+
+if ($AsJson) {
+    $script:Findings | ConvertTo-Json -Depth 6
+} else {
+    $order = @{ Critical=0; High=1; Medium=2; Low=3; Info=4 }
+    $script:Findings |
+        Sort-Object { $order[$_.Severity] }, Category |
+        Format-Table Severity, Category, Title -AutoSize -Wrap
+
+    $summary = $script:Findings | Group-Object Severity |
+        Sort-Object { $order[$_.Name] } |
+        ForEach-Object { "$($_.Name): $($_.Count)" }
+    Write-Host ""
+    Write-Host ("Summary -> " + ($summary -join '  |  '))
+}
+
+#endregion Main -----------------------------------------------------------------
